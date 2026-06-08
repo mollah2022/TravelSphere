@@ -1,96 +1,117 @@
-<div class="container destination-page">
+<div class="container">
 
+  <!-- Country Hero Card -->
   <div class="destination-hero">
-    <img
-      src="{{.Country.FlagURL}}"
-      alt="{{.Country.FlagAlt}}"
-      class="destination-flag"
-    >
-    <div class="destination-hero-info">
-      <h1>{{.Country.Name}}</h1>
-      <p class="destination-official">{{.Country.OfficialName}}</p>
-      <div class="destination-badges">
-        <span class="badge">{{.Country.Region}}</span>
-        <span class="badge">{{.Country.Subregion}}</span>
-        <span class="badge">{{.Country.CCA2}}</span>
+    <div class="destination-hero-inner">
+      <img
+        class="destination-flag"
+        src="{{.Country.FlagURL}}"
+        alt="{{.Country.FlagAlt}}"
+      >
+      <div class="destination-info">
+        <div class="region-badge">{{.Country.Region}}</div>
+        <h1>{{.Country.Name}}</h1>
+        <p class="official-name">{{.Country.OfficialName}}</p>
+
+        <div class="destination-meta-grid">
+          <div class="meta-item">
+            <label>CAPITAL</label>
+            <span>{{.Country.Capital}}</span>
+          </div>
+          <div class="meta-item">
+            <label>POPULATION</label>
+            <span>{{.FormattedPopulation}}</span>
+          </div>
+          <div class="meta-item">
+            <label>REGION</label>
+            <span>{{.Country.Region}}<br>{{.Country.Subregion}}</span>
+          </div>
+          <div class="meta-item">
+            <label>CURRENCY</label>
+            <span>{{.Country.Currencies}}</span>
+          </div>
+          <div class="meta-item">
+            <label>LANGUAGES</label>
+            <span>{{.Country.Languages}}</span>
+          </div>
+        </div>
+
+        {{if .IsLoggedIn}}
+        <button
+          class="btn-add-wishlist"
+          id="add-wishlist-btn"
+          data-country="{{.Country.Name}}"
+        >
+          Add to Wishlist
+        </button>
+        {{else}}
+        <a href="/login?redirect=/countries/{{.Country.Slug}}"
+           class="btn-add-wishlist"
+           style="display:inline-block;text-align:center;">
+          Login to Add Wishlist
+        </a>
+        {{end}}
+
+        <!-- AJAX feedback আসবে এখানে -->
+        <div id="wishlist-feedback"></div>
       </div>
     </div>
   </div>
 
-  <div class="destination-grid">
+  <!-- Weather + Attractions -->
+  <div class="two-col">
 
-    <div class="info-card">
-      <h3>Basic Info</h3>
-      <ul class="info-list">
-        <li><span>Capital</span><strong>{{.Country.Capital}}</strong></li>
-        <li><span>Population</span><strong>{{.FormattedPopulation}}</strong></li>
-        <li><span>Languages</span><strong>{{.Country.Languages}}</strong></li>
-        <li><span>Currencies</span><strong>{{.Country.Currencies}}</strong></li>
-      </ul>
-    </div>
-
-    {{if .Weather.Available}}
-    <div class="info-card weather-card">
-      <h3>Current Weather in {{.Country.Capital}}</h3>
-      <div class="weather-main">
-        <img src="{{.Weather.Icon}}" alt="{{.Weather.Condition}}">
-        <span class="weather-temp">{{.Weather.TempC}}°C</span>
+    <!-- Travel Weather -->
+    <div class="weather-card">
+      <h3>Travel weather</h3>
+      {{if .Weather.Available}}
+      <div class="weather-info">
+        <div class="weather-temp">{{.Weather.TempC}}°C</div>
+        <div class="weather-condition">
+          {{if .Weather.Icon}}
+          <img src="{{.Weather.Icon}}" alt="weather" style="width:32px;vertical-align:middle;">
+          {{end}}
+          {{.Weather.Condition}}
+        </div>
+        <div class="weather-detail">
+          Feels like {{.Weather.FeelsLikeC}}°C &nbsp;|&nbsp;
+          Humidity {{.Weather.Humidity}}% &nbsp;|&nbsp;
+          Wind {{.Weather.WindKph}} kph
+        </div>
       </div>
-      <ul class="info-list">
-        <li><span>Condition</span><strong>{{.Weather.Condition}}</strong></li>
-        <li><span>Feels Like</span><strong>{{.Weather.FeelsLikeC}}°C</strong></li>
-        <li><span>Humidity</span><strong>{{.Weather.Humidity}}%</strong></li>
-        <li><span>Wind</span><strong>{{.Weather.WindKph}} km/h</strong></li>
-      </ul>
-    </div>
-    {{end}}
-
-  </div>
-
-  {{if .IsLoggedIn}}
-  <div class="wishlist-action">
-    <h3>Add to Wishlist</h3>
-    <div class="wishlist-form" id="wishlist-form">
-      <input
-        type="text"
-        id="wishlist-note"
-        placeholder="Add a note (optional)"
-        maxlength="200"
-      >
-      <select id="wishlist-status">
-        <option value="Planned">Planned</option>
-        <option value="Visited">Visited</option>
-      </select>
-      <button
-        class="btn-primary"
-        onclick="addToWishlist('{{.Country.Name}}')"
-      >
-        + Add to Wishlist
-      </button>
-    </div>
-    <div id="wishlist-msg"></div>
-  </div>
-  {{else}}
-  <div class="wishlist-action">
-    <p><a href="/login?redirect=/countries/{{.Country.Slug}}">Login</a> to save this destination.</p>
-  </div>
-  {{end}}
-
-  {{if .Attractions}}
-  <div class="attractions-section">
-    <h3>Nearby Attractions</h3>
-    <div class="attractions-grid">
-      {{range .Attractions}}
-      <div class="attraction-card">
-        <div class="attraction-card-name">{{.Name}}</div>
-        <div class="attraction-card-kinds">{{.Kinds}}</div>
-        <div class="attraction-card-dist">{{.Distance}}m away</div>
+      {{else}}
+      <div class="weather-unavailable">
+        Weather data is optional. Add <code>WEATHER_API_KEY</code>
+        to your <code>.env</code> file to enable live conditions.
       </div>
       {{end}}
     </div>
-  </div>
-  {{end}}
 
+    <!-- Attractions & Landmarks -->
+    <div class="attractions-card">
+      <h3>Attractions &amp; landmarks</h3>
+      {{if .Attractions}}
+        {{range .Attractions}}
+        <div class="attraction-item">
+          <div>
+            <span class="attraction-name">{{.Name}}</span>
+            <span class="attraction-kinds">{{.Kinds}}</span>
+          </div>
+        </div>
+        {{end}}
+      {{else}}
+      <div class="empty-state">
+        <p>No attractions found for this destination.</p>
+      </div>
+      {{end}}
+    </div>
+
+  </div>
 </div>
 
+<script>
+  // Country name pass করো JS এ
+  var COUNTRY_NAME = "{{.Country.Name}}";
+  var IS_LOGGED_IN = {{if .IsLoggedIn}}true{{else}}false{{end}};
+</script>
 <script src="/static/js/destination.js"></script>

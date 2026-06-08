@@ -9,6 +9,5 @@
 <body>
     {{.Header}}
     {{.LayoutContent}}
-    {{.Footer}}
 </body>
 </html>

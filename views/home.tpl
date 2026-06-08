@@ -1,3 +1,4 @@
+<!-- Hero Section -->
 <section class="hero">
   <div class="hero-inner">
     <h1>Discover your next destination</h1>
@@ -11,11 +12,13 @@
         placeholder="Search country or capital..."
         autocomplete="off"
       >
+      <!-- AJAX suggestions আসবে এখানে -->
       <div class="search-suggestions" id="search-suggestions"></div>
     </div>
   </div>
 </section>
 
+<!-- Featured Destinations -->
 <div class="container">
   <h2 class="section-title">Featured destinations</h2>
 
@@ -39,6 +42,7 @@
   <div class="empty-state"><p>Featured destinations unavailable.</p></div>
   {{end}}
 
+  <!-- Popular Attractions -->
   <h2 class="section-title" style="margin-top:2.5rem;">Popular attractions</h2>
   {{if .PopularAttractions}}
     {{range .PopularAttractions}}
@@ -47,7 +51,6 @@
         <span class="attraction-name">{{.Name}}</span>
         <span class="attraction-kinds">{{.Kinds}}</span>
       </div>
-      <span class="attraction-country">{{.Country}}</span>
     </div>
     {{end}}
   {{else}}

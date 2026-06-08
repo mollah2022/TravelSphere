@@ -1,16 +1,21 @@
-<header class="site-header">
-  <div class="header-inner">
-    <a href="/" class="logo">🌍 TravelSphere</a>
-    <nav class="main-nav">
-      <a href="/" class="{{if .NavHome}}active{{end}}">Home</a>
-      <a href="/countries" class="{{if .NavCountries}}active{{end}}">Countries</a>
-      {{if .IsLoggedIn}}
-        <a href="/wishlist" class="{{if .NavWishlist}}active{{end}}">Wishlist</a>
-        <a href="/dashboard" class="{{if .NavDashboard}}active{{end}}">Dashboard</a>
-        <a href="/logout" class="btn-logout">Logout ({{.Username}})</a>
-      {{else}}
-        <a href="/login" class="btn-login">Login</a>
-      {{end}}
-    </nav>
+<nav class="navbar">
+  <a href="/" class="navbar-brand">TravelSphere</a>
+
+  <div class="navbar-menu">
+    <a href="/" {{if .NavHome}}class="active"{{end}}>Home</a>
+    <a href="/countries" {{if .NavCountries}}class="active"{{end}}>Countries</a>
+    {{if .IsLoggedIn}}
+      <a href="/wishlist" {{if .NavWishlist}}class="active"{{end}}>Wishlist</a>
+      <a href="/dashboard" {{if .NavDashboard}}class="active"{{end}}>Dashboard</a>
+    {{end}}
   </div>
-</header>
+
+  <div class="navbar-right">
+    {{if .IsLoggedIn}}
+      <span>Hi, <strong>{{.Username}}</strong></span>
+      <a href="/logout" class="btn-logout">Logout</a>
+    {{else}}
+      <a href="/login" class="btn-login">Login</a>
+    {{end}}
+  </div>
+</nav>
