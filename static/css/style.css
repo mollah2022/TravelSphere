@@ -1,0 +1,813 @@
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f2f5;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+button { cursor: pointer; }
+
+/* ── Navbar ── */
+.navbar {
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 2rem;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.navbar-brand {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #6c63ff;
+  letter-spacing: -0.5px;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.navbar-menu a {
+  font-size: 0.9rem;
+  color: #4b5563;
+  font-weight: 500;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.navbar-menu a:hover,
+.navbar-menu a.active {
+  color: #6c63ff;
+  border-bottom-color: #6c63ff;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.btn-login {
+  background: none;
+  border: 1.5px solid #6c63ff;
+  color: #6c63ff;
+  padding: 0.35rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-login:hover {
+  background: #6c63ff;
+  color: #fff;
+}
+
+.btn-logout {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* ── Hero Section ── */
+.hero {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #6c63ff 100%);
+  color: #fff;
+  padding: 4rem 2rem 3rem;
+  min-height: 420px;
+  display: flex;
+  align-items: center;
+}
+
+.hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+.hero p {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 2rem;
+}
+
+.hero-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 0.5rem;
+}
+
+.search-box {
+  position: relative;
+  max-width: 400px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.95rem;
+  outline: none;
+  background: #fff;
+  color: #1a1a2e;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 200;
+  max-height: 260px;
+  overflow-y: auto;
+  display: none;
+}
+
+.search-suggestions.show { display: block; }
+
+.suggestion-item {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  border-bottom: 1px solid #f0f2f5;
+  transition: background 0.15s;
+}
+
+.suggestion-item:hover { background: #f5f3ff; color: #6c63ff; }
+.suggestion-item:last-child { border-bottom: none; }
+
+/* ── Main Container ── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* ── Section Title ── */
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Country Cards Grid ── */
+.countries-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.country-card {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+}
+
+.country-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 16px rgba(108,99,255,0.12);
+}
+
+.country-card-flag {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+  background: #f0f2f5;
+}
+
+.country-card-body {
+  padding: 0.85rem;
+}
+
+.country-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: #1a1a2e;
+}
+
+.country-card-meta {
+  font-size: 0.78rem;
+  color: #6b7280;
+  line-height: 1.7;
+}
+
+.country-card-meta span {
+  font-weight: 500;
+  color: #374151;
+}
+
+/* ── Featured Destinations (Home) ── */
+.featured-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 1rem;
+}
+
+.featured-card {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.featured-card:hover { transform: translateY(-2px); }
+
+.featured-card img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  background: #f0f2f5;
+}
+
+.featured-card-body { padding: 0.6rem 0.75rem; }
+
+.featured-card-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.featured-card-sub {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ── Attractions List ── */
+.attraction-item {
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 0.6rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.attraction-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.attraction-kinds {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: 0.5rem;
+}
+
+/* ── Country Explorer Page ── */
+.explorer-header {
+  margin-bottom: 1.5rem;
+}
+
+.explorer-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 0.4rem;
+}
+
+.explorer-header p {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.search-filter-bar {
+  background: #fff;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.filter-group label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 0.55rem 0.9rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.2s;
+  min-width: 160px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  border-color: #6c63ff;
+}
+
+/* ── Destination Detail Page ── */
+.destination-hero {
+  background: #fff;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  margin-bottom: 1.5rem;
+}
+
+.destination-hero-inner {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.destination-flag {
+  width: 160px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.destination-info h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.destination-info .official-name {
+  color: #9ca3af;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.region-badge {
+  display: inline-block;
+  background: #ede9fe;
+  color: #6c63ff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+}
+
+.destination-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.meta-item label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.meta-item span {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #1a1a2e;
+}
+
+.btn-add-wishlist {
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  padding: 0.65rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 1.25rem;
+}
+
+.btn-add-wishlist:hover { background: #5a52d5; transform: translateY(-1px); }
+.btn-add-wishlist:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+#wishlist-feedback {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  min-height: 1.5rem;
+}
+
+.feedback-success { color: #10b981; font-weight: 500; }
+.feedback-error { color: #ef4444; font-weight: 500; }
+
+/* ── Two Column Layout ── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── Weather Card ── */
+.weather-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.weather-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+}
+
+.weather-unavailable {
+  background: #fafafa;
+  border: 1.5px dashed #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.82rem;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+.weather-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.weather-temp {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #6c63ff;
+}
+
+.weather-condition {
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+.weather-detail {
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* ── Attractions Card ── */
+.attractions-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.attractions-card h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #1a1a2e;
+}
+
+/* ── Wishlist Page ── */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 0.35rem;
+}
+
+.page-header p {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.wishlist-table-wrap {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+  overflow: hidden;
+}
+
+.wishlist-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wishlist-table th {
+  padding: 0.85rem 1.25rem;
+  text-align: left;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  font-weight: 600;
+  border-bottom: 1px solid #f0f2f5;
+  background: #fafafa;
+}
+
+.wishlist-table td {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid #f0f2f5;
+  font-size: 0.9rem;
+  color: #1a1a2e;
+  vertical-align: middle;
+}
+
+.wishlist-table tr:last-child td { border-bottom: none; }
+
+.wishlist-table input[type="text"] {
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  width: 160px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.wishlist-table input[type="text"]:focus {
+  border-color: #6c63ff;
+}
+
+.wishlist-table select {
+  padding: 0.45rem 0.7rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.wishlist-table select:focus { border-color: #6c63ff; }
+
+.btn-save {
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-right: 0.4rem;
+  transition: background 0.2s;
+}
+
+.btn-save:hover { background: #5a52d5; }
+
+.btn-delete {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover { background: #dc2626; }
+
+/* ── Dashboard Page ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+}
+
+.stat-card label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #9ca3af;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.stat-card .stat-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #6c63ff;
+  line-height: 1;
+}
+
+.destination-list-item {
+  background: #fff;
+  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  font-size: 0.9rem;
+  color: #1a1a2e;
+}
+
+.status-planned { color: #6c63ff; font-weight: 600; }
+.status-visited { color: #10b981; font-weight: 600; }
+
+/* ── Login Page ── */
+.login-wrap {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+.login-card h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 0.35rem;
+}
+
+.login-card p {
+  color: #9ca3af;
+  font-size: 0.88rem;
+  margin-bottom: 1.75rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus { border-color: #6c63ff; }
+
+.btn-primary {
+  width: 100%;
+  background: #6c63ff;
+  color: #fff;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover { background: #5a52d5; }
+
+.alert-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 0.65rem 1rem;
+  border-radius: 7px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+/* ── Loading Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #6c63ff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  color: #9ca3af;
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 1.5rem;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #9ca3af;
+}
+
+.empty-state p { font-size: 0.95rem; }
+
+/* ── Error Page ── */
+.error-page {
+  text-align: center;
+  padding: 5rem 1rem;
+}
+
+.error-page h1 {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #6c63ff;
+  margin-bottom: 1rem;
+}
+
+.error-page p {
+  font-size: 1.1rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 1.75rem; }
+  .two-col { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .destination-hero-inner { flex-direction: column; }
+  .navbar { padding: 0 1rem; }
+  .container { padding: 1.25rem 1rem; }
+  .search-filter-bar { flex-direction: column; }
+  .countries-grid { grid-template-columns: repeat(2, 1fr); }
+}
