@@ -28,6 +28,7 @@ type DashboardSummary struct {
 	Visited int `json:"visited"`
 }
 
+// NewSuccessResponse creates a standardized success API response
 func NewSuccessResponse(data interface{}, message string) APIResponse {
 	return APIResponse{
 		Success: true,
@@ -36,6 +37,7 @@ func NewSuccessResponse(data interface{}, message string) APIResponse {
 	}
 }
 
+// NewErrorResponse creates a standardized error API response
 func NewErrorResponse(err string, code int) APIError {
 	return APIError{
 		Success: false,

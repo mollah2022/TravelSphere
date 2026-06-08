@@ -28,6 +28,7 @@ type CreateWishlistRequest struct {
 	Status      string `json:"status"`
 }
 
+// create Wishlist handles creatring a new wishlist items
 func (r *CreateWishlistRequest) Validate() error {
 	if r.CountryName == "" {
 		return ErrCountryNameRequired
@@ -46,6 +47,7 @@ type UpdateWishlistRequest struct {
 	Status string `json:"status"`
 }
 
+// updateWishlist handles updating an existing wishlist item
 func (r *UpdateWishlistRequest) Validate() error {
 	if r.Status == "" {
 		return ErrStatusRequired
