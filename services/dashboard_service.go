@@ -5,19 +5,23 @@ import (
 	"TravelSphere/store"
 )
 
-// DashboardService handles dashboard-related business logic
-// It works with wishlist data to generate summary and user overview
+// DashboardServiceInterface mock করার জন্য interface
+type DashboardServiceInterface interface {
+	GetSummary(username string) models.DashboardSummary
+	GetSavedDestinations(username string) []*models.WishlistItem
+}
+
+// DashboardService dashboard related business logic
 type DashboardService struct {
 	store *store.WishlistStore
 }
 
-// NewDashboardService creates a new DashboardService instance
-func NewDashboardService(store *store.WishlistStore) *DashboardService {
-	return &DashboardService{store: store}
+// NewDashboardService নতুন DashboardService তৈরি করে
+func NewDashboardService(s *store.WishlistStore) *DashboardService {
+	return &DashboardService{store: s}
 }
 
-// GetSummary returns dashboard summary for a specific user
-// It shows total, planned, and visited destinations
+// GetSummary user এর dashboard stats return করে
 func (s *DashboardService) GetSummary(username string) models.DashboardSummary {
 	total, planned, visited := s.store.CountByUsername(username)
 	return models.DashboardSummary{
@@ -27,7 +31,7 @@ func (s *DashboardService) GetSummary(username string) models.DashboardSummary {
 	}
 }
 
-// GetSavedDestinations returns all saved wishlist items for a user
+// GetSavedDestinations user এর সব saved destinations return করে
 func (s *DashboardService) GetSavedDestinations(username string) []*models.WishlistItem {
 	return s.store.GetByUsername(username)
 }

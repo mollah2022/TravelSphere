@@ -7,69 +7,106 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
+// CountriesAPIController JSON API for countries
+// সব response JSON, কোনো HTML নেই
 type CountriesAPIController struct {
 	web.Controller
 }
 
-// List returns all countries from the service in JSON format.
-func (c *CountriesAPIController) List() {
-	countries, err := services.Container.CountryService.GetAllCountries()
-	if err != nil {
-		utils.JSONError(c.Ctx, "Failed to fetch countries", 500)
-		return
-	}
-	utils.JSONSuccess(c.Ctx, countries, "")
+// svc service container access করে
+func svc() *services.ServiceContainer {
+	return services.Container
 }
 
-// Detail returns a single country based on slug validation and lookup.
+// List GET /api/countries
+// Query params: search, region
+// AJAX country search + filter এর জন্য ব্যবহার হয়
+func (c *CountriesAPIController) List() {
+	search := c.GetString("search")
+	region := c.GetString("region")
+
+	// Input validate করো
+	if !utils.IsValidSearch(search) {
+		utils.SendError(&c.Controller, "Search query too long", 400)
+		return
+	}
+
+	if !utils.IsValidRegion(region) {
+		utils.SendError(&c.Controller, "Invalid region", 400)
+		return
+	}
+
+	// Service call করো
+	countries, err := svc().CountryService.SearchCountries(search, region)
+	if err != nil {
+		utils.SendError(&c.Controller, "Failed to fetch countries", 500)
+		return
+	}
+
+	utils.SendSuccess(&c.Controller, countries, "", 200)
+}
+
+// Detail GET /api/countries/:slug
+// Single country JSON return করে
 func (c *CountriesAPIController) Detail() {
 	slug := c.Ctx.Input.Param(":slug")
+
 	if !utils.IsValidSlug(slug) {
-		utils.JSONError(c.Ctx, "Invalid country slug", 400)
+		utils.SendError(&c.Controller, "Invalid country slug", 400)
 		return
 	}
 
-	country, err := services.Container.CountryService.GetCountryBySlug(slug)
+	country, err := svc().CountryService.GetCountryBySlug(slug)
 	if err != nil {
-		utils.JSONError(c.Ctx, "Country not found", 404)
+		utils.SendError(&c.Controller, "Country not found", 404)
 		return
 	}
-	utils.JSONSuccess(c.Ctx, country, "")
+
+	utils.SendSuccess(&c.Controller, country, "", 200)
 }
 
-// Attractions returns attractions for a specific country using its coordinates.
+// Attractions GET /api/attractions
+// Query params: lat, lon
+// Destination page এ AJAX attractions load এর জন্য
 func (c *CountriesAPIController) Attractions() {
-	slug := c.GetString("slug")
-	if !utils.IsValidSlug(slug) {
-		utils.JSONError(c.Ctx, "Invalid slug", 400)
+	lat, err1 := c.GetFloat("lat")
+	lon, err2 := c.GetFloat("lon")
+
+	if err1 != nil || err2 != nil {
+		utils.SendError(&c.Controller, "Invalid coordinates", 400)
 		return
 	}
 
-	country, err := services.Container.CountryService.GetCountryBySlug(slug)
+	attractions, err := svc().AttractionService.GetAttractionsByCountry(lat, lon)
 	if err != nil {
-		utils.JSONError(c.Ctx, "Country not found", 404)
+		utils.SendError(&c.Controller, "Failed to fetch attractions", 500)
 		return
 	}
 
-	attractions, err := services.Container.AttractionService.GetAttractionsByCountry(
-		country.Latitude,
-		country.Longitude,
-	)
-	if err != nil {
-		utils.JSONError(c.Ctx, "Failed to fetch attractions", 500)
-		return
-	}
-	utils.JSONSuccess(c.Ctx, attractions, "")
+	utils.SendSuccess(&c.Controller, attractions, "", 200)
 }
 
-// Suggestions returns country search results based on a query string.
+// Suggestions GET /api/suggestions
+// Query params: q
+// Home page search autocomplete এর জন্য
 func (c *CountriesAPIController) Suggestions() {
 	query := c.GetString("q")
+
 	if query == "" {
-		utils.JSONSuccess(c.Ctx, []interface{}{}, "")
+		utils.SendSuccess(&c.Controller, []interface{}{}, "", 200)
 		return
 	}
 
-	results := services.Container.CountryService.SearchCountries(query)
-	utils.JSONSuccess(c.Ctx, results, "")
+	if !utils.IsValidSearch(query) {
+		utils.SendError(&c.Controller, "Query too long", 400)
+		return
+	}
+
+	suggestions, err := svc().CountryService.GetSearchSuggestions(query)
+	if err != nil {
+		utils.SendError(&c.Controller, "Failed to fetch suggestions", 500)
+		return
+	}
+
+	utils.SendSuccess(&c.Controller, suggestions, "", 200)
 }

@@ -2,70 +2,67 @@ package utils
 
 import (
 	"TravelSphere/models"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"os"
 )
 
-// WeatherClient handles communication with the Weather API
+// WeatherClientInterface mock করার জন্য interface
+type WeatherClientInterface interface {
+	FetchCurrentWeather(city string) (*models.WeatherDTO, error)
+}
+
+// WeatherClient WeatherAPI client
 type WeatherClient struct {
-	baseURL string
-	apiKey  string
-	client  *http.Client
+	BaseURL    string
+	APIKey     string
+	HTTPClient HTTPClient
 }
 
-// NewWeatherClient creates and returns a new WeatherClient instance
+// NewWeatherClient নতুন WeatherAPI client তৈরি করে
 func NewWeatherClient() *WeatherClient {
+	baseURL := os.Getenv("WEATHER_API_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://api.weatherapi.com/v1"
+	}
+	apiKey := os.Getenv("WEATHER_API_KEY")
+
 	return &WeatherClient{
-		baseURL: os.Getenv("WEATHER_API_BASE_URL"),
-		apiKey:  os.Getenv("WEATHER_API_KEY"),
-		client:  NewHTTPClient(8),
+		BaseURL:    baseURL,
+		APIKey:     apiKey,
+		HTTPClient: NewHTTPClient(8),
 	}
 }
 
-// GetCurrent fetches current weather data for a given city
-func (c *WeatherClient) GetCurrent(city string) (*models.WeatherDTO, error) {
-	if c.apiKey == "" || c.baseURL == "" {
-		return nil, fmt.Errorf("weather API not configured")
+// IsAvailable check করে weather API key আছে কিনা
+func (c *WeatherClient) IsAvailable() bool {
+	return c.APIKey != ""
+}
+
+// FetchCurrentWeather city name দিয়ে current weather fetch করে
+func (c *WeatherClient) FetchCurrentWeather(city string) (*models.WeatherDTO, error) {
+	// API key না থাকলে unavailable return করো
+	if !c.IsAvailable() {
+		return &models.WeatherDTO{Available: false}, nil
 	}
 
-	reqURL := fmt.Sprintf("%s/current.json?key=%s&q=%s&aqi=no",
-		c.baseURL, c.apiKey, url.QueryEscape(city),
-	)
+	url := fmt.Sprintf("%s/current.json?key=%s&q=%s&aqi=no",
+		c.BaseURL, c.APIKey, city)
 
-	resp, err := c.client.Get(reqURL)
-	if err != nil {
-		return nil, fmt.Errorf("weather request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("weather API returned status %d", resp.StatusCode)
+	var response models.WeatherResponse
+	if err := FetchJSON(c.HTTPClient, url, &response); err != nil {
+		// Weather fail হলে app crash করবে না — graceful fallback
+		return &models.WeatherDTO{Available: false}, nil
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read weather response: %w", err)
-	}
-
-	var raw models.WeatherResponse
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, fmt.Errorf("failed to parse weather response: %w", err)
-	}
-
-	// Convert raw API response into clean DTO format
 	return &models.WeatherDTO{
-		Location:   raw.Location.Name,
-		Country:    raw.Location.Country,
-		TempC:      raw.Current.TempC,
-		Condition:  raw.Current.Condition.Text,
-		Icon:       raw.Current.Condition.Icon,
-		Humidity:   raw.Current.Humidity,
-		WindKph:    raw.Current.WindKph,
-		FeelsLikeC: raw.Current.FeelsLikeC,
+		Location:   response.Location.Name,
+		Country:    response.Location.Country,
+		TempC:      response.Current.TempC,
+		Condition:  response.Current.Condition.Text,
+		Icon:       "https:" + response.Current.Condition.Icon,
+		Humidity:   response.Current.Humidity,
+		WindKph:    response.Current.WindKph,
+		FeelsLikeC: response.Current.FeelsLikeC,
 		Available:  true,
 	}, nil
 }

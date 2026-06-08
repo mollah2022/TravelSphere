@@ -4,92 +4,145 @@ import (
 	"TravelSphere/models"
 	"TravelSphere/utils"
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
-	"time"
 )
 
-// CountryService handles all country-related business logic
-// It also includes caching to improve performance
+// CountryServiceInterface mock করার জন্য interface
+type CountryServiceInterface interface {
+	GetAllCountries() ([]models.CountryDTO, error)
+	SearchCountries(search, region string) ([]models.CountryDTO, error)
+	GetCountryBySlug(slug string) (*models.CountryDTO, error)
+	GetFeaturedCountries() ([]models.CountryDTO, error)
+}
+
+// CountryService country related সব business logic
 type CountryService struct {
-	client    *utils.CountriesClient
-	cache     []models.CountryDTO
-	cacheTime time.Time
-	mu        sync.RWMutex
+	client utils.CountriesClientInterface
+
+	// In-memory cache
+	cacheMu    sync.RWMutex
+	cachedData []models.CountryDTO
+	cacheReady bool
 }
 
-// NewCountryService creates a new CountryService instance
-func NewCountryService(client *utils.CountriesClient) *CountryService {
-	return &CountryService{client: client}
-}
-
-// GetAllCountries returns all countries
-// It uses cache to avoid calling API again and again
-func (s *CountryService) GetAllCountries() ([]models.CountryDTO, error) {
-	s.mu.RLock()
-	if s.cache != nil && time.Since(s.cacheTime) < 10*time.Minute {
-		defer s.mu.RUnlock()
-		return s.cache, nil
+// NewCountryService নতুন CountryService তৈরি করে
+func NewCountryService(client utils.CountriesClientInterface) *CountryService {
+	return &CountryService{
+		client: client,
 	}
-	s.mu.RUnlock()
+}
 
-	raw, err := s.client.GetAll()
+// getAllCached cache থেকে দেশ আনে, না থাকলে API call করে
+func (s *CountryService) getAllCached() ([]models.CountryDTO, error) {
+	// Read lock দিয়ে check করো cache আছে কিনা
+	s.cacheMu.RLock()
+	if s.cacheReady {
+		data := s.cachedData
+		s.cacheMu.RUnlock()
+		return data, nil
+	}
+	s.cacheMu.RUnlock()
+
+	// Cache নেই — API থেকে আনো
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+
+	// Double check (অন্য goroutine এর মধ্যে cache হয়ে গেছে কিনা)
+	if s.cacheReady {
+		return s.cachedData, nil
+	}
+
+	raw, err := s.client.FetchAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch countries: %w", err)
 	}
 
-	var dtos []models.CountryDTO
-	for _, r := range raw {
-		dtos = append(dtos, mapToDTO(r))
+	// Transform raw → DTO
+	dtos := make([]models.CountryDTO, 0, len(raw))
+	for _, c := range raw {
+		dtos = append(dtos, utils.TransformCountryToDTO(c))
 	}
 
-	sort.Slice(dtos, func(i, j int) bool {
-		return dtos[i].Name < dtos[j].Name
-	})
-
-	s.mu.Lock()
-	s.cache = dtos
-	s.cacheTime = time.Now()
-	s.mu.Unlock()
-
+	s.cachedData = dtos
+	s.cacheReady = true
 	return dtos, nil
 }
 
-// GetCountryBySlug returns a single country by its slug (URL-friendly name)
+// GetAllCountries সব দেশ return করে
+func (s *CountryService) GetAllCountries() ([]models.CountryDTO, error) {
+	return s.getAllCached()
+}
+
+// SearchCountries search ও region দিয়ে filter করে
+func (s *CountryService) SearchCountries(search, region string) ([]models.CountryDTO, error) {
+	all, err := s.getAllCached()
+	if err != nil {
+		return nil, err
+	}
+	return utils.FilterCountries(all, search, region), nil
+}
+
+// GetCountryBySlug slug দিয়ে একটা দেশ খোঁজে
+// যেমন: "bangladesh" → Bangladesh এর DTO
 func (s *CountryService) GetCountryBySlug(slug string) (*models.CountryDTO, error) {
-	countries, err := s.GetAllCountries()
+	all, err := s.getAllCached()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, c := range countries {
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	for _, c := range all {
 		if c.Slug == slug {
 			return &c, nil
 		}
+		// CCA2 code দিয়েও খোঁজা যাবে যেমন "us", "bd"
+		if strings.ToLower(c.CCA2) == slug {
+			return &c, nil
+		}
+		// CCA3 code দিয়েও যেমন "usa", "bgd"
+		if strings.ToLower(c.CCA3) == slug {
+			return &c, nil
+		}
 	}
+
+	// Fallback: allow typed country names or hyphenated names
+	if normalizedName := strings.TrimSpace(utils.SlugToName(slug)); normalizedName != "" {
+		for _, c := range all {
+			if strings.EqualFold(c.Name, normalizedName) || strings.EqualFold(c.OfficialName, normalizedName) {
+				return &c, nil
+			}
+		}
+	}
+
 	return nil, models.ErrNotFound
 }
 
-// GetFeaturedCountries returns a predefined list of popular countries
+// GetFeaturedCountries home page এর জন্য featured দেশ return করে
 func (s *CountryService) GetFeaturedCountries() ([]models.CountryDTO, error) {
-	featured := []string{
-		"france", "japan", "brazil", "egypt",
-		"australia", "canada", "italy", "india",
+	// স্ক্রিনশট অনুযায়ী: USA, France, Japan, Australia, Brazil, Bangladesh
+	featuredNames := []string{
+		"united-states",
+		"france",
+		"japan",
+		"australia",
+		"brazil",
+		"bangladesh",
 	}
 
-	countries, err := s.GetAllCountries()
+	all, err := s.getAllCached()
 	if err != nil {
 		return nil, err
 	}
 
+	// slug দিয়ে featured দেশ গুলো খুঁজে বের করো
 	slugMap := make(map[string]models.CountryDTO)
-	for _, c := range countries {
+	for _, c := range all {
 		slugMap[c.Slug] = c
 	}
 
-	var result []models.CountryDTO
-	for _, slug := range featured {
+	result := make([]models.CountryDTO, 0, len(featuredNames))
+	for _, slug := range featuredNames {
 		if c, ok := slugMap[slug]; ok {
 			result = append(result, c)
 		}
@@ -97,75 +150,18 @@ func (s *CountryService) GetFeaturedCountries() ([]models.CountryDTO, error) {
 	return result, nil
 }
 
-// SearchCountries searches countries by name or capital
-func (s *CountryService) SearchCountries(query string) []models.CountryDTO {
-	countries, err := s.GetAllCountries()
+// GetSearchSuggestions home page search autocomplete এর জন্য
+func (s *CountryService) GetSearchSuggestions(query string) ([]models.CountryDTO, error) {
+	if query == "" {
+		return []models.CountryDTO{}, nil
+	}
+	results, err := s.SearchCountries(query, "")
 	if err != nil {
-		return nil
+		return nil, err
 	}
-
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q == "" {
-		return nil
+	// সর্বোচ্চ 8টা suggestion দেখাও
+	if len(results) > 8 {
+		return results[:8], nil
 	}
-
-	var result []models.CountryDTO
-	for _, c := range countries {
-		if strings.Contains(strings.ToLower(c.Name), q) ||
-			strings.Contains(strings.ToLower(c.Capital), q) {
-			result = append(result, c)
-			if len(result) >= 8 {
-				break
-			}
-		}
-	}
-	return result
-}
-
-// mapToDTO converts raw API response to clean DTO format
-func mapToDTO(r models.CountryResponse) models.CountryDTO {
-	capital := ""
-	if len(r.Capital) > 0 {
-		capital = r.Capital[0]
-	}
-
-	var currencies []string
-	for code, cur := range r.Currencies {
-		currencies = append(currencies, fmt.Sprintf("%s (%s)", code, cur.Name))
-	}
-
-	var languages []string
-	for _, lang := range r.Languages {
-		languages = append(languages, lang)
-	}
-	sort.Strings(languages)
-
-	lat, lon := 0.0, 0.0
-	if len(r.LatLng) >= 2 {
-		lat = r.LatLng[0]
-		lon = r.LatLng[1]
-	}
-
-	slug := strings.ToLower(strings.ReplaceAll(r.Name.Common, " ", "-"))
-	slug = strings.ReplaceAll(slug, "'", "")
-	slug = strings.ReplaceAll(slug, ".", "")
-	slug = strings.ReplaceAll(slug, ",", "")
-
-	return models.CountryDTO{
-		Slug:         slug,
-		Name:         r.Name.Common,
-		OfficialName: r.Name.Official,
-		Capital:      capital,
-		Region:       r.Region,
-		Subregion:    r.Subregion,
-		Population:   r.Population,
-		FlagURL:      r.Flags.PNG,
-		FlagAlt:      r.Flags.Alt,
-		Currencies:   strings.Join(currencies, ", "),
-		Languages:    strings.Join(languages, ", "),
-		CCA2:         r.CCA2,
-		CCA3:         r.CCA3,
-		Latitude:     lat,
-		Longitude:    lon,
-	}
+	return results, nil
 }

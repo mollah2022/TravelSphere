@@ -5,8 +5,8 @@ import (
 	"TravelSphere/utils"
 )
 
-// ServiceContainer holds all services of the application
-// This helps to access all services from one place (central container)
+// ServiceContainer সব service একসাথে ধরে রাখে
+// main.go তে একবার initialize হয়, সব controller এ share হয়
 type ServiceContainer struct {
 	CountryService    *CountryService
 	AttractionService *AttractionService
@@ -15,16 +15,21 @@ type ServiceContainer struct {
 	WeatherService    *WeatherService
 }
 
+// Global service container — সব controller এ ব্যবহার হবে
 var Container *ServiceContainer
 
-// InitServices initializes all services and injects required dependencies
+// InitServices সব service initialize করে
+// main.go তে web.Run() এর আগে call করতে হবে
 func InitServices() {
+	// Store
 	wishlistStore := store.NewWishlistStore()
 
+	// API Clients
 	countriesClient := utils.NewCountriesClient()
 	attractionClient := utils.NewOpenTripMapClient()
 	weatherClient := utils.NewWeatherClient()
 
+	// Services
 	Container = &ServiceContainer{
 		CountryService:    NewCountryService(countriesClient),
 		AttractionService: NewAttractionService(attractionClient),

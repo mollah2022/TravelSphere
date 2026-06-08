@@ -2,76 +2,93 @@ package utils
 
 import (
 	"TravelSphere/models"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"os"
 )
 
-// OpenTripMapClient handles communication with the OpenTripMap API
-type OpenTripMapClient struct {
-	baseURL string
-	apiKey  string
-	client  *http.Client
+// OpenTripMapClientInterface mock করার জন্য interface
+type OpenTripMapClientInterface interface {
+	FetchAttractionsByCoords(lat, lon float64, radius int) ([]models.AttractionDTO, error)
 }
 
-// NewOpenTripMapClient creates and returns a new API client instance
+// OpenTripMapClient OpenTripMap API client
+type OpenTripMapClient struct {
+	BaseURL    string
+	APIKey     string
+	HTTPClient HTTPClient
+}
+
+// NewOpenTripMapClient নতুন OpenTripMap client তৈরি করে
 func NewOpenTripMapClient() *OpenTripMapClient {
+	baseURL := os.Getenv("OPENTRIPMAP_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://api.opentripmap.com/0.1/en"
+	}
+	apiKey := os.Getenv("OPENTRIPMAP_API_KEY")
+
 	return &OpenTripMapClient{
-		baseURL: os.Getenv("OPENTRIPMAP_BASE_URL"),
-		apiKey:  os.Getenv("OPENTRIPMAP_API_KEY"),
-		client:  NewHTTPClient(10),
+		BaseURL:    baseURL,
+		APIKey:     apiKey,
+		HTTPClient: NewHTTPClient(10),
 	}
 }
 
-// GetAttractionsByRadius fetches nearby attractions based on latitude, longitude, and radius
-func (c *OpenTripMapClient) GetAttractionsByRadius(lat, lon float64, radius int) ([]models.AttractionDTO, error) {
-	if c.apiKey == "" {
-		return nil, fmt.Errorf("OPENTRIPMAP_API_KEY not set")
+// FetchAttractionsByCoords coordinates দিয়ে nearby attractions fetch করে
+func (c *OpenTripMapClient) FetchAttractionsByCoords(lat, lon float64, radius int) ([]models.AttractionDTO, error) {
+	if c.APIKey == "" {
+		return []models.AttractionDTO{}, nil
 	}
 
 	url := fmt.Sprintf(
-		"%s/places/radius?radius=%d&lon=%f&lat=%f&kinds=interesting_places&format=geojson&limit=10&apikey=%s",
-		c.baseURL, radius, lon, lat, c.apiKey,
+		"%s/places/radius?radius=%d&lon=%f&lat=%f&kinds=interesting_places,museums,historic,tourist_facilities&limit=10&apikey=%s",
+		c.BaseURL, radius, lon, lat, c.APIKey,
 	)
 
-	resp, err := c.client.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("opentripmap request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("opentripmap returned status %d", resp.StatusCode)
+	var response models.AttractionResponse
+	if err := FetchJSON(c.HTTPClient, url, &response); err != nil {
+		return nil, fmt.Errorf("FetchAttractionsByCoords failed: %w", err)
 	}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
+	return TransformAttractions(response), nil
+}
 
-	var result models.AttractionResponse
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("failed to parse attractions: %w", err)
-	}
+// TransformAttractions AttractionResponse কে []AttractionDTO তে convert করে
+func TransformAttractions(resp models.AttractionResponse) []models.AttractionDTO {
+	result := make([]models.AttractionDTO, 0, len(resp.Features))
 
-	var dtos []models.AttractionDTO
-	for _, f := range result.Features {
-		if f.Properties.Name == "" {
+	for _, f := range resp.Features {
+		// নাম ছাড়া attraction skip করো
+		name := f.Properties.Name
+		if name == "" {
+			name = f.Name
+		}
+		if name == "" {
 			continue
 		}
-		// Map API data to internal DTO
+
 		dto := models.AttractionDTO{
 			XID:       f.Properties.XID,
-			Name:      f.Properties.Name,
+			Name:      name,
 			Kinds:     f.Properties.Kinds,
+			KindsList: FormatKinds(f.Properties.Kinds),
 			Distance:  f.Properties.Dist,
 			Latitude:  f.Properties.Point.Lat,
 			Longitude: f.Properties.Point.Lon,
 		}
-		dtos = append(dtos, dto)
+		result = append(result, dto)
 	}
+	return result
+}
 
-	return dtos, nil
+// GetPopularAttractions home page এর জন্য static popular attractions
+// Free API tier এ global attractions পাওয়া যায় না তাই static
+func GetPopularAttractions() []models.PopularAttraction {
+	return []models.PopularAttraction{
+		{Name: "Eiffel Tower", Kinds: "architecture,historic", Country: "France"},
+		{Name: "Grand Canyon", Kinds: "natural", Country: "USA"},
+		{Name: "Sydney Opera House", Kinds: "architecture,theatre", Country: "Australia"},
+		{Name: "Colosseum", Kinds: "historic,architecture", Country: "Italy"},
+		{Name: "Taj Mahal", Kinds: "historic,architecture", Country: "India"},
+		{Name: "Machu Picchu", Kinds: "historic,natural", Country: "Peru"},
+	}
 }

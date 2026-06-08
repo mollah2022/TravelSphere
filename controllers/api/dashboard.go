@@ -1,30 +1,29 @@
 package apicontrollers
 
-import (
-	"TravelSphere/services"
-	"TravelSphere/utils"
+import "TravelSphere/utils"
 
-	"github.com/beego/beego/v2/server/web"
-)
-
+// DashboardAPIController JSON API for dashboard
 type DashboardAPIController struct {
-	web.Controller
+	CountriesAPIController
 }
 
-// It returns user-specific dashboard summary in JSON format.
+// Summary GET /api/dashboard/summary
+// Dashboard stats AJAX refresh এর জন্য
+// { total, planned, visited }
 func (c *DashboardAPIController) Summary() {
-	var username string
-	if c.Ctx.Input.CruSession != nil {
-		if sess := c.Ctx.Input.Session("username"); sess != nil {
-			username = sess.(string)
-		}
-	}
-
-	if username == "" {
-		utils.JSONError(c.Ctx, "Unauthorized", 401)
+	// Auth check করো
+	if c.Ctx == nil || c.Ctx.Input == nil || c.Ctx.Input.CruSession == nil {
+		utils.SendError(&c.Controller, "Unauthorized", 401)
 		return
 	}
 
-	summary := services.Container.DashboardService.GetSummary(username)
-	utils.JSONSuccess(c.Ctx, summary, "")
+	sess := c.GetSession("username")
+	if sess == nil {
+		utils.SendError(&c.Controller, "Unauthorized", 401)
+		return
+	}
+	username := sess.(string)
+
+	summary := svc().DashboardService.GetSummary(username)
+	utils.SendSuccess(&c.Controller, summary, "", 200)
 }

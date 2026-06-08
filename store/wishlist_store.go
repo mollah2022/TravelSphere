@@ -3,6 +3,7 @@ package store
 import (
 	"TravelSphere/models"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 )
@@ -32,23 +33,25 @@ func (s *WishlistStore) GetByUsername(username string) []*models.WishlistItem {
 			result = append(result, item)
 		}
 	}
+
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].CreatedAt.After(result[j].CreatedAt)
+	})
+
 	return result
 }
 
 // GetByID returns a single wishlist item by its ID
-func (s *WishlistStore) GetByID(id string) (*models.WishlistItem, error) {
+func (s *WishlistStore) GetByID(id string) (*models.WishlistItem, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	item, ok := s.items[id]
-	if !ok {
-		return nil, models.ErrNotFound
-	}
-	return item, nil
+	return item, ok
 }
 
 // Create adds a new wishlist item to the store
-func (s *WishlistStore) Create(username, countryName, note, status string) (*models.WishlistItem, error) {
+func (s *WishlistStore) Create(username, countryName, note, status string) *models.WishlistItem {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -64,35 +67,44 @@ func (s *WishlistStore) Create(username, countryName, note, status string) (*mod
 	}
 
 	s.items[id] = item
-	return item, nil
+	return item
 }
 
 // Update modifies an existing wishlist item
-func (s *WishlistStore) Update(id, note, status string) (*models.WishlistItem, error) {
+func (s *WishlistStore) Update(id, note, status string) (*models.WishlistItem, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	item, ok := s.items[id]
 	if !ok {
-		return nil, models.ErrNotFound
+		return nil, false
 	}
 
 	item.Note = note
 	item.Status = models.WishlistStatus(status)
-	return item, nil
+	return item, true
 }
 
 // Delete removes a wishlist item from the store
-func (s *WishlistStore) Delete(id string) error {
+func (s *WishlistStore) Delete(id string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	if _, ok := s.items[id]; !ok {
-		return models.ErrNotFound
+		return false
 	}
 
 	delete(s.items, id)
-	return nil
+	return true
+}
+
+// IsOwner returns whether the given username owns the wishlist item
+func (s *WishlistStore) IsOwner(id, username string) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	item, ok := s.items[id]
+	return ok && item.Username == username
 }
 
 // CountByUsername returns summary statistics of a user's wishlist

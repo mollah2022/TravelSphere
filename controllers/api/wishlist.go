@@ -2,135 +2,154 @@ package apicontrollers
 
 import (
 	"TravelSphere/models"
-	"TravelSphere/services"
 	"TravelSphere/utils"
 	"encoding/json"
-
-	"github.com/beego/beego/v2/server/web"
 )
 
+// WishlistAPIController JSON API for wishlist CRUD
+// সব route এ auth check করা হয়
 type WishlistAPIController struct {
-	web.Controller
+	CountriesAPIController // svc() inherit করার জন্য
 }
 
-// username extracts the logged-in username from session.
-// It returns empty string if session is not available.
-func (c *WishlistAPIController) username() string {
-	if c.Ctx.Input.CruSession == nil {
-		return ""
+// getUsername session থেকে username নেয়
+// না থাকলে 401 response পাঠায় এবং false return করে
+func (c *WishlistAPIController) getUsername() (string, bool) {
+	if c.Ctx == nil || c.Ctx.Input == nil || c.Ctx.Input.CruSession == nil {
+		utils.SendError(&c.Controller, "Unauthorized", 401)
+		return "", false
 	}
-	sess := c.Ctx.Input.Session("username")
+
+	sess := c.GetSession("username")
 	if sess == nil {
-		return ""
+		utils.SendError(&c.Controller, "Unauthorized", 401)
+		return "", false
 	}
-	return sess.(string)
+	return sess.(string), true
 }
 
-// List returns all wishlist items for the logged-in user in JSON format.
+// List GET /api/wishlist
+// Logged in user এর সব wishlist items return করে
 func (c *WishlistAPIController) List() {
-	username := c.username()
-	if username == "" {
-		utils.JSONError(c.Ctx, "Unauthorized", 401)
+	username, ok := c.getUsername()
+	if !ok {
 		return
 	}
 
-	items := services.Container.WishlistService.GetWishlist(username)
-	if items == nil {
-		items = []*models.WishlistItem{}
-	}
-	utils.JSONSuccess(c.Ctx, items, "")
+	items := svc().WishlistService.GetWishlist(username)
+	utils.SendSuccess(&c.Controller, items, "", 200)
 }
 
-// Create adds a new item to the user's wishlist.
-// It validates request body and returns the created item.
+// Create POST /api/wishlist
+// নতুন wishlist item তৈরি করে
+// Body: { country_name, note, status }
 func (c *WishlistAPIController) Create() {
-	username := c.username()
-	if username == "" {
-		utils.JSONError(c.Ctx, "Unauthorized", 401)
+	username, ok := c.getUsername()
+	if !ok {
 		return
 	}
 
+	// Request body parse করো
 	var req models.CreateWishlistRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
-		utils.JSONError(c.Ctx, "Invalid request body", 400)
+		utils.SendError(&c.Controller, "Invalid request body", 400)
 		return
 	}
 
-	item, err := services.Container.WishlistService.Create(username, &req)
+	// XSS prevent করো
+	req.CountryName = utils.SanitizeString(req.CountryName)
+	req.Note = utils.SanitizeString(req.Note)
+
+	// Service call করো
+	item, err := svc().WishlistService.AddToWishlist(username, req)
 	if err != nil {
-		utils.JSONError(c.Ctx, err.Error(), 400)
+		switch err {
+		case models.ErrCountryNameRequired:
+			utils.SendError(&c.Controller, err.Error(), 400)
+		case models.ErrInvalidStatus:
+			utils.SendError(&c.Controller, err.Error(), 400)
+		default:
+			utils.SendError(&c.Controller, "Failed to add to wishlist", 500)
+		}
 		return
 	}
 
-	utils.JSONSuccess(c.Ctx, item, "Item added to wishlist")
+	utils.SendSuccess(&c.Controller, item, "Added to wishlist", 201)
 }
 
-// Update modifies an existing wishlist item for the logged-in user.
-// It checks item ownership, validates input, and updates data.
+// Update PUT /api/wishlist/:id
+// Wishlist item এর note আর status update করে
+// Body: { note, status }
 func (c *WishlistAPIController) Update() {
-	username := c.username()
-	if username == "" {
-		utils.JSONError(c.Ctx, "Unauthorized", 401)
+	username, ok := c.getUsername()
+	if !ok {
 		return
 	}
 
 	id := c.Ctx.Input.Param(":id")
 	if id == "" {
-		utils.JSONError(c.Ctx, "Missing item ID", 400)
+		utils.SendError(&c.Controller, "Invalid ID", 400)
 		return
 	}
 
+	// Request body parse করো
 	var req models.UpdateWishlistRequest
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &req); err != nil {
-		utils.JSONError(c.Ctx, "Invalid request body", 400)
+		utils.SendError(&c.Controller, "Invalid request body", 400)
 		return
 	}
 
-	item, err := services.Container.WishlistService.Update(username, id, &req)
+	// XSS prevent করো
+	req.Note = utils.SanitizeString(req.Note)
+
+	// Service call করো
+	item, err := svc().WishlistService.UpdateWishlistItem(username, id, req)
 	if err != nil {
-		if err == models.ErrNotFound {
-			utils.JSONError(c.Ctx, "Item not found", 404)
-			return
+		switch err {
+		case models.ErrUnauthorized:
+			utils.SendError(&c.Controller, "Unauthorized", 403)
+		case models.ErrNotFound:
+			utils.SendError(&c.Controller, "Item not found", 404)
+		case models.ErrInvalidStatus:
+			utils.SendError(&c.Controller, err.Error(), 400)
+		case models.ErrStatusRequired:
+			utils.SendError(&c.Controller, err.Error(), 400)
+		default:
+			utils.SendError(&c.Controller, "Failed to update", 500)
 		}
-		if err == models.ErrUnauthorized {
-			utils.JSONError(c.Ctx, "Unauthorized", 403)
-			return
-		}
-		utils.JSONError(c.Ctx, err.Error(), 400)
 		return
 	}
 
-	utils.JSONSuccess(c.Ctx, item, "Item updated")
+	utils.SendSuccess(&c.Controller, item, "Updated successfully", 200)
 }
 
-// Delete removes a wishlist item for the logged-in user.
-// It validates ownership and deletes the item if it exists.
+// Delete DELETE /api/wishlist/:id
+// Wishlist item delete করে
 func (c *WishlistAPIController) Delete() {
-	username := c.username()
-	if username == "" {
-		utils.JSONError(c.Ctx, "Unauthorized", 401)
+	username, ok := c.getUsername()
+	if !ok {
 		return
 	}
 
 	id := c.Ctx.Input.Param(":id")
 	if id == "" {
-		utils.JSONError(c.Ctx, "Missing item ID", 400)
+		utils.SendError(&c.Controller, "Invalid ID", 400)
 		return
 	}
 
-	err := services.Container.WishlistService.Delete(username, id)
+	// Service call করো
+	err := svc().WishlistService.DeleteWishlistItem(username, id)
 	if err != nil {
-		if err == models.ErrNotFound {
-			utils.JSONError(c.Ctx, "Item not found", 404)
-			return
+		switch err {
+		case models.ErrUnauthorized:
+			utils.SendError(&c.Controller, "Unauthorized", 403)
+		case models.ErrNotFound:
+			utils.SendError(&c.Controller, "Item not found", 404)
+		default:
+			utils.SendError(&c.Controller, "Failed to delete", 500)
 		}
-		if err == models.ErrUnauthorized {
-			utils.JSONError(c.Ctx, "Unauthorized", 403)
-			return
-		}
-		utils.JSONError(c.Ctx, err.Error(), 400)
 		return
 	}
 
-	utils.JSONSuccess(c.Ctx, nil, "Item deleted")
+	utils.SendSuccess(&c.Controller, nil, "Deleted successfully", 200)
 }

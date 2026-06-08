@@ -6,12 +6,13 @@ import (
 	"strings"
 )
 
+// CountryController SSR country routes handle করে
 type CountryController struct {
 	BaseController
 }
 
-// List handles the country listing page.
-// It fetches all countries from service and sends them to the template.
+// List GET /countries — Country Explorer page render করে
+// Initial load এ সব দেশ SSR এ দেখায়
 func (c *CountryController) List() {
 	countries, err := svc().CountryService.GetAllCountries()
 	if err != nil {
@@ -20,6 +21,7 @@ func (c *CountryController) List() {
 		countries = nil
 	}
 
+	// Region list for filter dropdown
 	regions := []string{"All Regions", "Africa", "Americas", "Asia", "Europe", "Oceania"}
 
 	c.Data["Countries"] = countries
@@ -29,19 +31,21 @@ func (c *CountryController) List() {
 	c.TplName = "countries.tpl"
 }
 
-// Detail handles single country detail page.
-// It validates slug, fetches country info, attractions, and weather data.
+// Detail GET /countries/:slug — Destination detail page render করে
+// যেমন: /countries/bangladesh → Bangladesh এর full page
 func (c *CountryController) Detail() {
 	slug := c.Ctx.Input.Param(":slug")
 	slug = strings.ToLower(strings.TrimSpace(slug))
 	slug = strings.ReplaceAll(slug, " ", "-")
 	slug = strings.ReplaceAll(slug, "_", "-")
 
+	// Slug validate করো
 	if !utils.IsValidSlug(slug) {
 		c.renderNotFound("Invalid country URL.")
 		return
 	}
 
+	// Country খোঁজো
 	country, err := svc().CountryService.GetCountryBySlug(slug)
 	if err != nil {
 		log.Printf("[ERROR] CountryController.Detail: slug=%s err=%v", slug, err)
@@ -49,6 +53,7 @@ func (c *CountryController) Detail() {
 		return
 	}
 
+	// Attractions আনো (lat/lon দিয়ে)
 	attractions, err := svc().AttractionService.GetAttractionsByCountry(
 		country.Latitude,
 		country.Longitude,
@@ -58,7 +63,10 @@ func (c *CountryController) Detail() {
 		attractions = nil
 	}
 
+	// Weather আনো (bonus — capital city দিয়ে)
 	weather := svc().WeatherService.GetWeather(country.Capital)
+
+	// Population formatted
 	formattedPop := utils.FormatPopulation(country.Population)
 
 	c.Data["Country"] = country
@@ -69,7 +77,7 @@ func (c *CountryController) Detail() {
 	c.TplName = "destination.tpl"
 }
 
-// renderNotFound shows a 404 error page with a custom message.
+// renderNotFound user-friendly 404 page দেখায়
 func (c *CountryController) renderNotFound(msg string) {
 	c.Ctx.ResponseWriter.WriteHeader(404)
 	c.Data["ErrorMessage"] = msg

@@ -3,31 +3,32 @@ package services
 import (
 	"TravelSphere/models"
 	"TravelSphere/utils"
-	"log"
 )
 
-// WeatherService handles weather-related business logic
-// It communicates with Weather API client to get live weather data
+// WeatherServiceInterface mock করার জন্য interface
+type WeatherServiceInterface interface {
+	GetWeather(city string) *models.WeatherDTO
+}
+
+// WeatherService weather related business logic
 type WeatherService struct {
 	client *utils.WeatherClient
 }
 
-// NewWeatherService creates a new WeatherService instance
+// NewWeatherService নতুন WeatherService তৈরি করে
 func NewWeatherService(client *utils.WeatherClient) *WeatherService {
 	return &WeatherService{client: client}
 }
 
-// GetWeather returns current weather for a given city
+// GetWeather city এর weather আনে
+// API key না থাকলে বা fail হলে unavailable DTO দেয়
 func (s *WeatherService) GetWeather(city string) *models.WeatherDTO {
 	if city == "" {
 		return &models.WeatherDTO{Available: false}
 	}
-
-	dto, err := s.client.GetCurrent(city)
-	if err != nil {
-		log.Printf("[WARN] WeatherService: %v", err)
+	weather, _ := s.client.FetchCurrentWeather(city)
+	if weather == nil {
 		return &models.WeatherDTO{Available: false}
 	}
-
-	return dto
+	return weather
 }
