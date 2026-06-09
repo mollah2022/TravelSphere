@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-// HTTPClient interface — এটা দিয়ে real ও mock client আলাদা করা যায়
+// HTTPClient interface allows separating real and mock HTTP clients.
 type HTTPClient interface {
 	Get(url string) (*http.Response, error)
 }
 
-// DefaultHTTPClient production এ ব্যবহার হয়
+// DefaultHTTPClient production
 type DefaultHTTPClient struct {
 	client *http.Client
 }
 
-// NewHTTPClient নতুন HTTP client তৈরি করে timeout সহ
+// NewHTTPClient creates a new HTTP client with timeout.
 func NewHTTPClient(timeoutSeconds int) *DefaultHTTPClient {
 	return &DefaultHTTPClient{
 		client: &http.Client{
@@ -27,12 +27,11 @@ func NewHTTPClient(timeoutSeconds int) *DefaultHTTPClient {
 	}
 }
 
-// Get HTTP GET request করে
 func (c *DefaultHTTPClient) Get(url string) (*http.Response, error) {
 	return c.client.Get(url)
 }
 
-// FetchJSON যেকোনো URL থেকে JSON fetch করে struct এ decode করে
+// FetchJSON fetches JSON from any URL and decodes it into a struct
 // target must be a pointer to a struct
 func FetchJSON(client HTTPClient, url string, target interface{}) error {
 	resp, err := client.Get(url)

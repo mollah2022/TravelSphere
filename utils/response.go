@@ -6,14 +6,14 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// SendSuccess controller থেকে success JSON response পাঠায়
+// SendSuccess sends a successful JSON response from the controller.
 func SendSuccess(c *web.Controller, data interface{}, message string, statusCode int) {
 	c.Ctx.ResponseWriter.WriteHeader(statusCode)
 	c.Data["json"] = models.NewSuccessResponse(data, message)
 	c.ServeJSON()
 }
 
-// SendError controller থেকে error JSON response পাঠায়
+// SendError sends an error JSON response from the controller.
 func SendError(c *web.Controller, message string, statusCode int) {
 	c.Ctx.ResponseWriter.WriteHeader(statusCode)
 	c.Data["json"] = models.NewErrorResponse(message, statusCode)

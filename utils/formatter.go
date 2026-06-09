@@ -7,8 +7,7 @@ import (
 	"unicode"
 )
 
-// FormatPopulation population কে readable format এ convert করে
-// যেমন: 170000000 → "170M", 2400000 → "2.4M", 47400 → "47.4K"
+// FormatPopulation converts a population number into a human-readable format.
 func FormatPopulation(pop int64) string {
 	switch {
 	case pop >= 1_000_000_000:
@@ -22,8 +21,7 @@ func FormatPopulation(pop int64) string {
 	}
 }
 
-// FormatCurrencies currency map কে readable string এ convert করে
-// যেমন: {"BDT": {Name: "Bangladeshi taka", Symbol: "৳"}} → "BDT (Bangladeshi taka)"
+// FormatCurrencies converts a currency map into a readable string format.
 func FormatCurrencies(currencies map[string]models.Currency) string {
 	if len(currencies) == 0 {
 		return "N/A"
@@ -39,8 +37,7 @@ func FormatCurrencies(currencies map[string]models.Currency) string {
 	return strings.Join(parts, ", ")
 }
 
-// FormatCurrenciesWithCode currency code সহ format করে
-// যেমন: "BDT (Bangladeshi taka)"
+// FormatCurrenciesWithCode converts currency codes into a readable format including the code.
 func FormatCurrenciesWithCode(currencies map[string]models.Currency) string {
 	if len(currencies) == 0 {
 		return "N/A"
@@ -52,8 +49,7 @@ func FormatCurrenciesWithCode(currencies map[string]models.Currency) string {
 	return strings.Join(parts, ", ")
 }
 
-// FormatLanguages language map কে readable string এ convert করে
-// যেমন: {"ben": "Bengali", "eng": "English"} → "Bengali, English"
+// FormatLanguages converts a language map into a readable string.
 func FormatLanguages(languages map[string]string) string {
 	if len(languages) == 0 {
 		return "N/A"
@@ -65,7 +61,7 @@ func FormatLanguages(languages map[string]string) string {
 	return strings.Join(parts, ", ")
 }
 
-// FormatCapital capital slice এর প্রথম item নেয়
+// FormatCapital returns the first item from a capital slice.
 func FormatCapital(capitals []string) string {
 	if len(capitals) == 0 {
 		return "N/A"
@@ -73,8 +69,7 @@ func FormatCapital(capitals []string) string {
 	return capitals[0]
 }
 
-// FormatRegion region ও subregion combine করে
-// যেমন: "Asia", "Southern Asia" → "Asia - Southern Asia"
+// FormatRegion combines region and subregion into a single readable string.
 func FormatRegion(region, subregion string) string {
 	if subregion == "" {
 		return region
@@ -82,8 +77,7 @@ func FormatRegion(region, subregion string) string {
 	return fmt.Sprintf("%s - %s", region, subregion)
 }
 
-// FormatKinds OpenTripMap kinds string কে clean list এ convert করে
-// যেমন: "museums,historic_architecture" → ["museums", "historic architecture"]
+// FormatKinds converts OpenTripMap kinds string into a clean list.
 func FormatKinds(kinds string) []string {
 	if kinds == "" {
 		return []string{}
@@ -100,8 +94,7 @@ func FormatKinds(kinds string) []string {
 	return result
 }
 
-// SlugToName slug কে display name এ convert করে
-// যেমন: "united-states" → "United States"
+// SlugToName converts a slug into a display name.
 func SlugToName(slug string) string {
 	words := strings.Split(slug, "-")
 	for i, w := range words {
@@ -112,8 +105,7 @@ func SlugToName(slug string) string {
 	return strings.Join(words, " ")
 }
 
-// NameToSlug country name কে URL slug এ convert করে
-// যেমন: "United States" → "united-states"
+// NameToSlug converts a country name into a URL-friendly slug.
 func NameToSlug(name string) string {
 	name = strings.ToLower(strings.TrimSpace(name))
 	var sb strings.Builder

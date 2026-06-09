@@ -6,19 +6,19 @@ import (
 	"os"
 )
 
-// WeatherClientInterface mock করার জন্য interface
+// WeatherClientInterface is used to mock the weather client in tests.
 type WeatherClientInterface interface {
 	FetchCurrentWeather(city string) (*models.WeatherDTO, error)
 }
 
-// WeatherClient WeatherAPI client
+// WeatherClient is a client for interacting with the Weather API.
 type WeatherClient struct {
 	BaseURL    string
 	APIKey     string
 	HTTPClient HTTPClient
 }
 
-// NewWeatherClient নতুন WeatherAPI client তৈরি করে
+// NewWeatherClient creates a new WeatherAPI client.
 func NewWeatherClient() *WeatherClient {
 	baseURL := os.Getenv("WEATHER_API_BASE_URL")
 	if baseURL == "" {
@@ -33,14 +33,14 @@ func NewWeatherClient() *WeatherClient {
 	}
 }
 
-// IsAvailable check করে weather API key আছে কিনা
+// IsAvailable checks whether the weather API key is available.
 func (c *WeatherClient) IsAvailable() bool {
 	return c.APIKey != ""
 }
 
-// FetchCurrentWeather city name দিয়ে current weather fetch করে
+// FetchCurrentWeather fetches the current weather using the city name.
 func (c *WeatherClient) FetchCurrentWeather(city string) (*models.WeatherDTO, error) {
-	// API key না থাকলে unavailable return করো
+
 	if !c.IsAvailable() {
 		return &models.WeatherDTO{Available: false}, nil
 	}
@@ -50,7 +50,7 @@ func (c *WeatherClient) FetchCurrentWeather(city string) (*models.WeatherDTO, er
 
 	var response models.WeatherResponse
 	if err := FetchJSON(c.HTTPClient, url, &response); err != nil {
-		// Weather fail হলে app crash করবে না — graceful fallback
+
 		return &models.WeatherDTO{Available: false}, nil
 	}
 

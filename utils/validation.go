@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-// IsValidSlug check করে slug টা valid কিনা
-// valid slug: lowercase letters, numbers, hyphens only
+// IsValidSlug checks whether a slug is valid.
+// A valid slug contains only lowercase letters, numbers, and hyphens.
 func IsValidSlug(slug string) bool {
 	if slug == "" {
 		return false
@@ -26,13 +26,13 @@ func IsValidSlug(slug string) bool {
 	return true
 }
 
-// IsValidSearch search query validate করে
+// IsValidSearch search query validate
 func IsValidSearch(query string) bool {
 	query = strings.TrimSpace(query)
 	return len(query) <= 100 // max 100 characters
 }
 
-// IsValidRegion region filter validate করে
+// IsValidRegion region filter validate
 func IsValidRegion(region string) bool {
 	if region == "" || region == "all" {
 		return true
@@ -48,7 +48,7 @@ func IsValidRegion(region string) bool {
 	return validRegions[region]
 }
 
-// SanitizeString string থেকে dangerous characters remove করে
+// SanitizeString removes dangerous characters from a string.
 func SanitizeString(s string) string {
 	s = strings.TrimSpace(s)
 	// Basic XSS prevention
@@ -58,7 +58,7 @@ func SanitizeString(s string) string {
 	return s
 }
 
-// TruncateString string কে max length এ truncate করে
+// TruncateString truncates a string to a maximum length.
 func TruncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
