@@ -53,6 +53,7 @@ func (c *CountriesClient) FetchByName(name string) ([]models.CountryResponse, er
 	}
 	return countries, nil
 }
+
 // TransformCountryToDTO CountryResponse কে CountryDTO তে convert করে
 func TransformCountryToDTO(c models.CountryResponse) models.CountryDTO {
 	lat, lon := 0.0, 0.0

@@ -48,6 +48,42 @@ func TestFormatCurrenciesWithCode(t *testing.T) {
 	}
 }
 
+func TestFormatCapital(t *testing.T) {
+	if utils.FormatCapital([]string{}) != "N/A" {
+		t.Error("expected N/A for empty capital")
+	}
+	if utils.FormatCapital([]string{"Paris"}) != "Paris" {
+		t.Error("expected first capital to be returned")
+	}
+}
+
+func TestFormatCurrencies(t *testing.T) {
+	currencies := map[string]models.Currency{
+		"BDT": {Name: "Bangladeshi taka", Symbol: "৳"},
+	}
+	result := utils.FormatCurrencies(currencies)
+	if result != "৳ (Bangladeshi taka)" {
+		t.Errorf("unexpected result: %q", result)
+	}
+
+	currencies = map[string]models.Currency{
+		"USD": {Name: "US Dollar", Symbol: ""},
+	}
+	result = utils.FormatCurrencies(currencies)
+	if result != "USD (US Dollar)" {
+		t.Errorf("unexpected result with missing symbol: %q", result)
+	}
+}
+
+func TestFormatRegion(t *testing.T) {
+	if got := utils.FormatRegion("Asia", "Southern Asia"); got != "Asia - Southern Asia" {
+		t.Errorf("unexpected result: %q", got)
+	}
+	if got := utils.FormatRegion("Asia", ""); got != "Asia" {
+		t.Errorf("expected just region when no subregion, got %q", got)
+	}
+}
+
 func TestNameToSlug(t *testing.T) {
 	tests := []struct {
 		input    string
