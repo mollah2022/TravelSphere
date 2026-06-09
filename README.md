@@ -81,18 +81,6 @@ Then run:
 bee run
 ```
 
-## Push changes to GitHub
-
-If you want to save your work to GitHub, use these commands after you add and commit your changes:
-
-```bash
-git add .
-git commit -m "Update README and Docker instructions"
-git push origin main
-```
-
-If your repository branch is different, replace `main` with your branch name.
-
 ## Docker
 
 This repository includes a `Dockerfile` that uses `golang:1.25.5`.
