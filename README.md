@@ -85,6 +85,13 @@ bee run
 
 This repository includes a `Dockerfile` that uses `golang:1.25.5`.
 
+## Run with Docker
+
+Pull the image:
+
+```bash
+docker pull mollah2022/travelsphere
+
 Build the image:
 
 ```bash
@@ -104,6 +111,8 @@ http://localhost:8080
 ```
 
 Stop the container by pressing `Ctrl+C`.
+
+
 
 ### Run Docker in the background
 
