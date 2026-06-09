@@ -7,25 +7,24 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// CountriesAPIController JSON API for countries
-// সব response JSON, কোনো HTML নেই
+// CountriesAPIController provides a JSON API for countries.
+// All responses are JSON; no HTML is returned.
 type CountriesAPIController struct {
 	web.Controller
 }
 
-// svc service container access করে
+// svc accesses the service container.
 func svc() *services.ServiceContainer {
 	return services.Container
 }
 
-// List GET /api/countries
-// Query params: search, region
-// AJAX country search + filter এর জন্য ব্যবহার হয়
+// List handles GET /api/countries.
+// Supports query parameters: search, region.
+// Used for AJAX-based country search and filtering.
 func (c *CountriesAPIController) List() {
 	search := c.GetString("search")
 	region := c.GetString("region")
 
-	// Input validate করো
 	if !utils.IsValidSearch(search) {
 		utils.SendError(&c.Controller, "Search query too long", 400)
 		return
@@ -36,7 +35,6 @@ func (c *CountriesAPIController) List() {
 		return
 	}
 
-	// Service call করো
 	countries, err := svc().CountryService.SearchCountries(search, region)
 	if err != nil {
 		utils.SendError(&c.Controller, "Failed to fetch countries", 500)
@@ -46,8 +44,8 @@ func (c *CountriesAPIController) List() {
 	utils.SendSuccess(&c.Controller, countries, "", 200)
 }
 
-// Detail GET /api/countries/:slug
-// Single country JSON return করে
+// Detail handles GET /api/countries/:slug.
+// Returns a single country as JSON.
 func (c *CountriesAPIController) Detail() {
 	slug := c.Ctx.Input.Param(":slug")
 
@@ -65,9 +63,9 @@ func (c *CountriesAPIController) Detail() {
 	utils.SendSuccess(&c.Controller, country, "", 200)
 }
 
-// Attractions GET /api/attractions
-// Query params: lat, lon
-// Destination page এ AJAX attractions load এর জন্য
+// Attractions handles GET /api/attractions.
+// Supports query parameters: lat, lon.
+// Used for AJAX loading of attractions on the destination page.
 func (c *CountriesAPIController) Attractions() {
 	lat, err1 := c.GetFloat("lat")
 	lon, err2 := c.GetFloat("lon")
@@ -86,9 +84,9 @@ func (c *CountriesAPIController) Attractions() {
 	utils.SendSuccess(&c.Controller, attractions, "", 200)
 }
 
-// Suggestions GET /api/suggestions
-// Query params: q
-// Home page search autocomplete এর জন্য
+// Suggestions handles GET /api/suggestions.
+// Supports query parameter: q.
+// Used for home page search autocomplete.
 func (c *CountriesAPIController) Suggestions() {
 	query := c.GetString("q")
 

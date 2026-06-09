@@ -6,17 +6,17 @@ import (
 	"github.com/beego/beego/v2/server/web"
 )
 
-// BaseController সব SSR controller এর parent
+// BaseController is the parent controller for all SSR controllers.
 type BaseController struct {
 	web.Controller
 	IsLoggedIn bool
 	Username   string
 }
 
-// Prepare প্রতিটা request এর আগে চলে
-// সব page এ common data set করে — navigation, login state ইত্যাদি
+// Prepare runs before every request.
+// It sets common data for all pages such as navigation and login state.
 func (c *BaseController) Prepare() {
-	// Session থেকে username নাও
+
 	var username interface{}
 	if c.Ctx != nil && c.Ctx.Input != nil && c.Ctx.Input.CruSession != nil {
 		username = c.GetSession("username")
@@ -31,13 +31,12 @@ func (c *BaseController) Prepare() {
 		c.Data = make(map[interface{}]interface{})
 	}
 
-	// Template এ pass করো
 	c.Data["IsLoggedIn"] = c.IsLoggedIn
 	c.Data["Username"] = c.Username
 	c.Data["AppName"] = "TravelSphere"
 
-	// Active nav item set করো
-	// যেমন /countries page এ থাকলে Countries nav active হবে
+	// Set active navigation item.
+	// For example, on /countries page, the Countries nav item will be active.
 	path := ""
 	if c.Ctx != nil && c.Ctx.Request != nil {
 		path = c.Ctx.Request.URL.Path
@@ -48,7 +47,6 @@ func (c *BaseController) Prepare() {
 	c.Data["NavWishlist"] = path == "/wishlist"
 	c.Data["NavDashboard"] = path == "/dashboard"
 
-	// Layout set করো
 	c.Layout = "layout/main.tpl"
 	c.LayoutSections = map[string]string{
 		"Header": "partial/header.tpl",
@@ -56,7 +54,7 @@ func (c *BaseController) Prepare() {
 	}
 }
 
-// svc service container এ access দেয়
+// svc provides access to the service container.
 func svc() *services.ServiceContainer {
 	return services.Container
 }

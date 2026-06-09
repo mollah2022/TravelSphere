@@ -5,21 +5,19 @@ import (
 	"strings"
 )
 
-// AuthController login/logout handle করে
+// AuthController handles user authentication including login and logout operations.
 type AuthController struct {
 	BaseController
 }
 
-// ShowLogin GET /login — login page দেখায়
+// ShowLogin handles GET /login and displays the login page.
 func (c *AuthController) ShowLogin() {
-	// Already logged in হলে home এ redirect করো
+
 	if c.IsLoggedIn {
 		c.Redirect("/", 302)
 		return
 	}
 
-	// কোথা থেকে redirect হয়ে এসেছে সেটা save করো
-	// login এর পরে সেখানে ফিরে যাবে
 	redirect := c.GetString("redirect")
 	if redirect == "" {
 		redirect = "/"
@@ -27,11 +25,11 @@ func (c *AuthController) ShowLogin() {
 
 	c.Data["RedirectURL"] = redirect
 	c.Data["PageTitle"] = "Login"
-	// Login page এ layout থাকবে কিন্তু header/footer minimal
+
 	c.TplName = "login.tpl"
 }
 
-// DoLogin POST /login — login process করে
+// DoLogin POST /login — login process
 func (c *AuthController) DoLogin() {
 	username := strings.TrimSpace(c.GetString("username"))
 	redirect := c.GetString("redirect")
@@ -64,23 +62,20 @@ func (c *AuthController) DoLogin() {
 		return
 	}
 
-	// Username sanitize করো
 	username = sanitizeUsername(username)
 
-	// Session এ save করো
 	c.SetSession("username", username)
 
-	// Redirect করো
 	c.Redirect(redirect, 302)
 }
 
-// DoLogout GET /logout — session destroy করে
+// DoLogout handles GET /logout and destroys the user session.
 func (c *AuthController) DoLogout() {
 	c.DestroySession()
 	c.Redirect("/", 302)
 }
 
-// sanitizeUsername username থেকে special characters remove করে
+// sanitizeUsername removes special characters from the username.
 func sanitizeUsername(s string) string {
 	var result strings.Builder
 	for _, ch := range s {
@@ -95,8 +90,8 @@ func sanitizeUsername(s string) string {
 	return result.String()
 }
 
-// getDemoCredentials .env থেকে demo credentials আনে
-// (unused for now — no password required)
+// getDemoCredentials loads demo credentials from .env.
+// (currently unused — no password required)
 func getDemoCredentials() (string, string) {
 	return os.Getenv("DEMO_USERNAME"), os.Getenv("DEMO_PASSWORD")
 }
