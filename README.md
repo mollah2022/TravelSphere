@@ -43,6 +43,15 @@ No. You do not need to install Beego globally. This project uses Go modules (`go
 - `WEATHER_API_BASE_URL` - base URL for the weather API
 - `WEATHER_API_KEY` - API key for weather data
 
+## Configuration
+
+Before running the project, create your configuration file:
+
+```bash
+cp app.conf.example app.conf
+```
+
+
 ## How to run
 
 1. Clone the repository from GitHub:
