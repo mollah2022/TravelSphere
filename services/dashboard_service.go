@@ -5,7 +5,7 @@ import (
 	"TravelSphere/store"
 )
 
-// DashboardServiceInterface mock করার জন্য interface
+// DashboardServiceInterface is used to mock the dashboard service in tests.
 type DashboardServiceInterface interface {
 	GetSummary(username string) models.DashboardSummary
 	GetSavedDestinations(username string) []*models.WishlistItem
@@ -16,12 +16,12 @@ type DashboardService struct {
 	store *store.WishlistStore
 }
 
-// NewDashboardService নতুন DashboardService তৈরি করে
+// NewDashboardService creates a new instance of DashboardService
 func NewDashboardService(s *store.WishlistStore) *DashboardService {
 	return &DashboardService{store: s}
 }
 
-// GetSummary user এর dashboard stats return করে
+// GetSummary returns dashboard statistics for a user.
 func (s *DashboardService) GetSummary(username string) models.DashboardSummary {
 	total, planned, visited := s.store.CountByUsername(username)
 	return models.DashboardSummary{
@@ -31,7 +31,7 @@ func (s *DashboardService) GetSummary(username string) models.DashboardSummary {
 	}
 }
 
-// GetSavedDestinations user এর সব saved destinations return করে
+// GetSavedDestinations returns all saved destinations for a user.
 func (s *DashboardService) GetSavedDestinations(username string) []*models.WishlistItem {
 	return s.store.GetByUsername(username)
 }

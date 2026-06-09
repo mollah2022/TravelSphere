@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// CountryServiceInterface mock করার জন্য interface
+// CountryServiceInterface is used to mock the country service in tests.
 type CountryServiceInterface interface {
 	GetAllCountries() ([]models.CountryDTO, error)
 	SearchCountries(search, region string) ([]models.CountryDTO, error)
@@ -16,7 +16,7 @@ type CountryServiceInterface interface {
 	GetFeaturedCountries() ([]models.CountryDTO, error)
 }
 
-// CountryService country related সব business logic
+// CountryService country related business logic
 type CountryService struct {
 	client utils.CountriesClientInterface
 
@@ -26,16 +26,16 @@ type CountryService struct {
 	cacheReady bool
 }
 
-// NewCountryService নতুন CountryService তৈরি করে
+// NewCountryService creates a new instance of CountryService
 func NewCountryService(client utils.CountriesClientInterface) *CountryService {
 	return &CountryService{
 		client: client,
 	}
 }
 
-// getAllCached cache থেকে দেশ আনে, না থাকলে API call করে
+// getAllCached fetches countries from cache; if not available, it calls the API.
 func (s *CountryService) getAllCached() ([]models.CountryDTO, error) {
-	// Read lock দিয়ে check করো cache আছে কিনা
+
 	s.cacheMu.RLock()
 	if s.cacheReady {
 		data := s.cachedData
@@ -44,11 +44,9 @@ func (s *CountryService) getAllCached() ([]models.CountryDTO, error) {
 	}
 	s.cacheMu.RUnlock()
 
-	// Cache নেই — API থেকে আনো
 	s.cacheMu.Lock()
 	defer s.cacheMu.Unlock()
 
-	// Double check (অন্য goroutine এর মধ্যে cache হয়ে গেছে কিনা)
 	if s.cacheReady {
 		return s.cachedData, nil
 	}
@@ -69,12 +67,12 @@ func (s *CountryService) getAllCached() ([]models.CountryDTO, error) {
 	return dtos, nil
 }
 
-// GetAllCountries সব দেশ return করে
+// GetAllCountries returns all countries.
 func (s *CountryService) GetAllCountries() ([]models.CountryDTO, error) {
 	return s.getAllCached()
 }
 
-// SearchCountries search ও region দিয়ে filter করে
+// SearchCountries search and region parameters to filter countries.
 func (s *CountryService) SearchCountries(search, region string) ([]models.CountryDTO, error) {
 	all, err := s.getAllCached()
 	if err != nil {
@@ -83,8 +81,7 @@ func (s *CountryService) SearchCountries(search, region string) ([]models.Countr
 	return utils.FilterCountries(all, search, region), nil
 }
 
-// GetCountryBySlug slug দিয়ে একটা দেশ খোঁজে
-// যেমন: "bangladesh" → Bangladesh এর DTO
+// GetCountryBySlug finds a country using its slug (e.g., "bangladesh") and returns its DTO.
 func (s *CountryService) GetCountryBySlug(slug string) (*models.CountryDTO, error) {
 	all, err := s.getAllCached()
 	if err != nil {
@@ -96,11 +93,11 @@ func (s *CountryService) GetCountryBySlug(slug string) (*models.CountryDTO, erro
 		if c.Slug == slug {
 			return &c, nil
 		}
-		// CCA2 code দিয়েও খোঁজা যাবে যেমন "us", "bd"
+
 		if strings.ToLower(c.CCA2) == slug {
 			return &c, nil
 		}
-		// CCA3 code দিয়েও যেমন "usa", "bgd"
+
 		if strings.ToLower(c.CCA3) == slug {
 			return &c, nil
 		}
@@ -118,9 +115,9 @@ func (s *CountryService) GetCountryBySlug(slug string) (*models.CountryDTO, erro
 	return nil, models.ErrNotFound
 }
 
-// GetFeaturedCountries home page এর জন্য featured দেশ return করে
+// GetFeaturedCountries returns featured countries for the home page.
 func (s *CountryService) GetFeaturedCountries() ([]models.CountryDTO, error) {
-	// স্ক্রিনশট অনুযায়ী: USA, France, Japan, Australia, Brazil, Bangladesh
+
 	featuredNames := []string{
 		"united-states",
 		"france",
@@ -135,7 +132,6 @@ func (s *CountryService) GetFeaturedCountries() ([]models.CountryDTO, error) {
 		return nil, err
 	}
 
-	// slug দিয়ে featured দেশ গুলো খুঁজে বের করো
 	slugMap := make(map[string]models.CountryDTO)
 	for _, c := range all {
 		slugMap[c.Slug] = c
@@ -150,7 +146,7 @@ func (s *CountryService) GetFeaturedCountries() ([]models.CountryDTO, error) {
 	return result, nil
 }
 
-// GetSearchSuggestions home page search autocomplete এর জন্য
+// GetSearchSuggestions returns search autocomplete suggestions for the home page.
 func (s *CountryService) GetSearchSuggestions(query string) ([]models.CountryDTO, error) {
 	if query == "" {
 		return []models.CountryDTO{}, nil
@@ -159,7 +155,7 @@ func (s *CountryService) GetSearchSuggestions(query string) ([]models.CountryDTO
 	if err != nil {
 		return nil, err
 	}
-	// সর্বোচ্চ 8টা suggestion দেখাও
+
 	if len(results) > 8 {
 		return results[:8], nil
 	}

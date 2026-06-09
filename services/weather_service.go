@@ -5,7 +5,7 @@ import (
 	"TravelSphere/utils"
 )
 
-// WeatherServiceInterface mock করার জন্য interface
+// WeatherServiceInterface is used to mock the weather service in tests.
 type WeatherServiceInterface interface {
 	GetWeather(city string) *models.WeatherDTO
 }
@@ -15,13 +15,13 @@ type WeatherService struct {
 	client *utils.WeatherClient
 }
 
-// NewWeatherService নতুন WeatherService তৈরি করে
+// NewWeatherService creates a new instance of WeatherService.
 func NewWeatherService(client *utils.WeatherClient) *WeatherService {
 	return &WeatherService{client: client}
 }
 
-// GetWeather city এর weather আনে
-// API key না থাকলে বা fail হলে unavailable DTO দেয়
+// GetWeather returns weather information for a city.
+// If the API key is missing or the request fails, it returns an unavailable DTO.
 func (s *WeatherService) GetWeather(city string) *models.WeatherDTO {
 	if city == "" {
 		return &models.WeatherDTO{Available: false}
