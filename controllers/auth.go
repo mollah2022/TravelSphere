@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"net/http"
 	"os"
 	"strings"
 )
@@ -64,14 +65,30 @@ func (c *AuthController) DoLogin() {
 
 	username = sanitizeUsername(username)
 
-	c.SetSession("username", username)
+	// Set cookie instead of session (more reliable)
+	cookie := &http.Cookie{
+		Name:     "travelsphere_user",
+		Value:    username,
+		MaxAge:   86400, // 24 hours
+		Path:     "/",
+		HttpOnly: true,
+	}
+	http.SetCookie(c.Ctx.ResponseWriter, cookie)
 
 	c.Redirect(redirect, 302)
 }
 
 // DoLogout handles GET /logout and destroys the user session.
 func (c *AuthController) DoLogout() {
-	c.DestroySession()
+	// Clear the user cookie by setting MaxAge to -1
+	cookie := &http.Cookie{
+		Name:     "travelsphere_user",
+		Value:    "",
+		MaxAge:   -1,
+		Path:     "/",
+		HttpOnly: true,
+	}
+	http.SetCookie(c.Ctx.ResponseWriter, cookie)
 	c.Redirect("/", 302)
 }
 

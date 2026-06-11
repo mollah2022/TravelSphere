@@ -63,13 +63,14 @@ func TestAuthFilter_RedirectsWhenNoSession(t *testing.T) {
 
 func TestAuthFilter_AllowsWhenUsernamePresent(t *testing.T) {
 	req := httptest.NewRequest("GET", "/protected", nil)
+	// Set the travelsphere_user cookie
+	req.AddCookie(&http.Cookie{
+		Name:  "travelsphere_user",
+		Value: "alice",
+	})
 	rw := httptest.NewRecorder()
 	c := ctxpkg.NewContext()
 	c.Reset(rw, req)
-
-	// install a mock session with username
-	m := &mockStore{vals: map[interface{}]interface{}{"username": "alice"}}
-	c.Input.CruSession = m
 
 	filters.AuthFilter(c)
 

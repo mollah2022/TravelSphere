@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/beego/beego/v2/server/web"
 	"github.com/joho/godotenv"
@@ -40,6 +42,18 @@ func main() {
 		addr = fmt.Sprintf(":%d", web.BConfig.Listen.HTTPPort)
 	}
 	log.Printf("[INFO] TravelSphere starting on %s", addr)
+
+	// Handle graceful shutdown on Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigChan
+		log.Printf("[INFO] Received signal: %v", sig)
+		log.Println("[INFO] Shutting down gracefully...")
+		os.Exit(0)
+	}()
+
 	web.Run()
 }
 

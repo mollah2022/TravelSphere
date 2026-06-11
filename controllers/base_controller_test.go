@@ -45,18 +45,21 @@ func (m *mockStore) Flush(ctx context.Context) error {
 	return nil
 }
 
-func newBaseController(path string, session map[interface{}]interface{}) *BaseController {
+func newBaseController(path string, username string) *BaseController {
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", path, nil)
+	if username != "" {
+		req.AddCookie(&http.Cookie{Name: "travelsphere_user", Value: username})
+	}
 	ctx := ctxpkg.NewContext()
 	ctx.Reset(rw, req)
-	ctx.Input.CruSession = &mockStore{vals: session}
+	ctx.Input.CruSession = &mockStore{vals: map[interface{}]interface{}{}}
 
 	return &BaseController{Controller: web.Controller{Ctx: ctx, Data: make(map[interface{}]interface{})}}
 }
 
 func TestPrepare_SetsNavigationAndLoginState(t *testing.T) {
-	c := newBaseController("/countries", map[interface{}]interface{}{"username": "alice"})
+	c := newBaseController("/countries", "alice")
 	c.Prepare()
 
 	if !c.IsLoggedIn {
@@ -74,7 +77,7 @@ func TestPrepare_SetsNavigationAndLoginState(t *testing.T) {
 }
 
 func TestPrepare_NoSession_SetsDefaultValues(t *testing.T) {
-	c := newBaseController("/unknown", nil)
+	c := newBaseController("/unknown", "")
 	c.Prepare()
 
 	if c.IsLoggedIn {

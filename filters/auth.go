@@ -10,15 +10,12 @@ func AuthFilter(ctx *context.Context) {
 	if ctx == nil || ctx.Input == nil {
 		return
 	}
-	if ctx.Input.CruSession == nil {
+
+	// Check for authentication cookie instead of session
+	cookie, err := ctx.Request.Cookie("travelsphere_user")
+	if err != nil || cookie.Value == "" {
 		redirectURL := "/login?redirect=" + ctx.Input.URI()
 		ctx.Redirect(302, redirectURL)
 		return
-	}
-
-	sess := ctx.Input.Session("username")
-	if sess == nil {
-		redirectURL := "/login?redirect=" + ctx.Input.URI()
-		ctx.Redirect(302, redirectURL)
 	}
 }

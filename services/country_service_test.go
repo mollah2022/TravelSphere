@@ -1,10 +1,10 @@
 package services_test
 
 import (
-	"errors"
-	"testing"
 	"TravelSphere/models"
 	"TravelSphere/services"
+	"errors"
+	"testing"
 )
 
 // ── Mock Countries Client ──
@@ -239,5 +239,82 @@ func TestGetSearchSuggestions_EmptyQuery(t *testing.T) {
 	if len(results) != 0 {
 		t.Errorf("empty query should return 0 suggestions, got %d",
 			len(results))
+	}
+}
+
+func TestGetFeaturedCountries_Success(t *testing.T) {
+	svc := newCountryService(false)
+
+	results, err := svc.GetFeaturedCountries()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) == 0 {
+		t.Errorf("expected featured countries, got %d", len(results))
+	}
+	// Should include Bangladesh which is in the featured list
+	found := false
+	for _, c := range results {
+		if c.Name == "Bangladesh" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected Bangladesh in featured countries")
+	}
+}
+
+func TestGetFeaturedCountries_APIError(t *testing.T) {
+	svc := newCountryService(true)
+
+	_, err := svc.GetFeaturedCountries()
+	if err == nil {
+		t.Error("expected error when API fails")
+	}
+}
+
+func TestSearchCountriesWithPagination_Success(t *testing.T) {
+	svc := newCountryService(false)
+
+	results, err := svc.SearchCountriesWithPagination("", "", 10, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 3 {
+		t.Errorf("expected 3 countries, got %d", len(results))
+	}
+}
+
+func TestSearchCountriesWithPagination_WithOffset(t *testing.T) {
+	svc := newCountryService(false)
+
+	results, err := svc.SearchCountriesWithPagination("", "", 10, 2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 1 {
+		t.Errorf("expected 1 country with offset 2, got %d", len(results))
+	}
+}
+
+func TestSearchCountriesWithPagination_WithLimit(t *testing.T) {
+	svc := newCountryService(false)
+
+	results, err := svc.SearchCountriesWithPagination("", "", 2, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 2 {
+		t.Errorf("expected 2 countries with limit 2, got %d", len(results))
+	}
+}
+
+func TestSearchCountriesWithPagination_APIError(t *testing.T) {
+	svc := newCountryService(true)
+
+	_, err := svc.SearchCountriesWithPagination("", "", 10, 0)
+	if err == nil {
+		t.Error("expected error when API fails")
 	}
 }

@@ -12,6 +12,7 @@ import (
 type CountryServiceInterface interface {
 	GetAllCountries() ([]models.CountryDTO, error)
 	SearchCountries(search, region string) ([]models.CountryDTO, error)
+	SearchCountriesWithPagination(search, region string, limit, offset int) ([]models.CountryDTO, error)
 	GetCountryBySlug(slug string) (*models.CountryDTO, error)
 	GetFeaturedCountries() ([]models.CountryDTO, error)
 }
@@ -79,6 +80,39 @@ func (s *CountryService) SearchCountries(search, region string) ([]models.Countr
 		return nil, err
 	}
 	return utils.FilterCountries(all, search, region), nil
+}
+
+// SearchCountriesWithPagination filters countries and applies pagination
+// limit: number of results per page (1-100, default 25)
+// offset: number of results to skip (default 0)
+func (s *CountryService) SearchCountriesWithPagination(search, region string, limit, offset int) ([]models.CountryDTO, error) {
+	// Get all filtered countries
+	filtered, err := s.SearchCountries(search, region)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Apply pagination
+	total := len(filtered)
+	if offset >= total {
+		// Return empty list if offset is beyond total
+		return []models.CountryDTO{}, nil
+	}
+
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+
+	return filtered[offset:end], nil
 }
 
 // GetCountryBySlug finds a country using its slug (e.g., "bangladesh") and returns its DTO.

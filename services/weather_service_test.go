@@ -23,6 +23,13 @@ func (m *mockHTTPClient) Get(url string) (*http.Response, error) {
 	return m.resp, nil
 }
 
+func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.resp, nil
+}
+
 func TestGetWeather_EmptyCity(t *testing.T) {
 	svc := services.NewWeatherService(&utils.WeatherClient{APIKey: "", HTTPClient: &mockHTTPClient{}})
 	weather := svc.GetWeather("")

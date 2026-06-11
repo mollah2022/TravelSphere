@@ -88,7 +88,11 @@ func (m *mockWeatherHTTPClient) Get(url string) (*http.Response, error) {
 	return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
 }
 
-func newAPIContext(method, url string, body []byte) (*web.Controller, *ctxpkg.Context, *httptest.ResponseRecorder) {
+func (m *mockWeatherHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return &http.Response{StatusCode: 200, Body: http.NoBody}, nil
+}
+
+func newAPIContext(method, url string, body []byte) (*web.Controller, *ctxpkg.Context, *httptest.ResponseRecorder, *http.Request) {
 	rw := httptest.NewRecorder()
 	req := httptest.NewRequest(method, url, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -98,7 +102,14 @@ func newAPIContext(method, url string, body []byte) (*web.Controller, *ctxpkg.Co
 		ctx.Input.RequestBody = body
 	}
 	ctrl := &web.Controller{Ctx: ctx, Data: make(map[interface{}]interface{})}
-	return ctrl, ctx, rw
+	return ctrl, ctx, rw, req
+}
+
+func setCookie(req *http.Request, username string) {
+	req.AddCookie(&http.Cookie{
+		Name:  "travelsphere_user",
+		Value: username,
+	})
 }
 
 func setupAPIServices(countryData []models.CountryResponse, countryErr error, attractionErr error) {
@@ -112,10 +123,6 @@ func setupAPIServices(countryData []models.CountryResponse, countryErr error, at
 	}
 }
 
-func setSession(ctx *ctxpkg.Context, username string) {
-	ctx.Input.CruSession = &mockSessionStore{vals: map[interface{}]interface{}{"username": username}}
-}
-
 func decodeJSONResponse(t *testing.T, body *bytes.Buffer) map[string]interface{} {
 	t.Helper()
 	var resp map[string]interface{}
@@ -127,7 +134,7 @@ func decodeJSONResponse(t *testing.T, body *bytes.Buffer) map[string]interface{}
 
 func TestCountriesAPIList_InvalidSearch(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/countries?search="+strings.Repeat("a", 101), nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/countries?search="+strings.Repeat("a", 101), nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.List()
@@ -139,7 +146,7 @@ func TestCountriesAPIList_InvalidSearch(t *testing.T) {
 
 func TestCountriesAPIList_ServiceError(t *testing.T) {
 	setupAPIServices(nil, errors.New("fail"), nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/countries?search=bang&region=Asia", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/countries?search=bang&region=Asia", nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.List()
@@ -151,7 +158,7 @@ func TestCountriesAPIList_ServiceError(t *testing.T) {
 
 func TestCountriesAPIDetail_NotFound(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("GET", "/api/countries/missing", nil)
+	ctrl, ctx, _, _ := newAPIContext("GET", "/api/countries/missing", nil)
 	ctx.Input.SetParam(":slug", "missing")
 	c := &CountriesAPIController{Controller: *ctrl}
 
@@ -164,7 +171,7 @@ func TestCountriesAPIDetail_NotFound(t *testing.T) {
 
 func TestCountriesAPIAttractions_InvalidCoordinates(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/attractions?lat=abc&lon=xyz", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/attractions?lat=abc&lon=xyz", nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.Attractions()
@@ -176,7 +183,7 @@ func TestCountriesAPIAttractions_InvalidCoordinates(t *testing.T) {
 
 func TestCountriesAPIAttractions_ServiceError(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{{Name: models.CountryName{Common: "Bangladesh"}}}, nil, errors.New("fail"))
-	ctrl, _, _ := newAPIContext("GET", "/api/attractions?lat=23.7&lon=90.4", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/attractions?lat=23.7&lon=90.4", nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.Attractions()
@@ -188,7 +195,7 @@ func TestCountriesAPIAttractions_ServiceError(t *testing.T) {
 
 func TestCountriesAPIAttractions_Success(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/attractions?lat=23.7&lon=90.4", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/attractions?lat=23.7&lon=90.4", nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.Attractions()
@@ -200,7 +207,7 @@ func TestCountriesAPIAttractions_Success(t *testing.T) {
 
 func TestCountriesAPISuggestions_QueryTooLong(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/suggestions?q="+strings.Repeat("a", 101), nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/suggestions?q="+strings.Repeat("a", 101), nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.Suggestions()
@@ -212,7 +219,7 @@ func TestCountriesAPISuggestions_QueryTooLong(t *testing.T) {
 
 func TestCountriesAPISuggestions_ServiceError(t *testing.T) {
 	setupAPIServices(nil, errors.New("fail"), nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/suggestions?q=bang", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/suggestions?q=bang", nil)
 	c := &CountriesAPIController{Controller: *ctrl}
 
 	c.Suggestions()
@@ -228,8 +235,8 @@ func TestDashboardAPISummary_Authorized(t *testing.T) {
 	store.Create("alice", "France", "Visit", string(models.StatusPlanned))
 	services.Container.DashboardService = services.NewDashboardService(store)
 
-	ctrl, ctx, rw := newAPIContext("GET", "/api/dashboard/summary", nil)
-	setSession(ctx, "alice")
+	ctrl, _, rw, req := newAPIContext("GET", "/api/dashboard/summary", nil)
+	setCookie(req, "alice")
 	c := &DashboardAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Summary()
@@ -245,8 +252,7 @@ func TestDashboardAPISummary_Authorized(t *testing.T) {
 
 func TestDashboardAPISummary_UsernameMissing(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, rw := newAPIContext("GET", "/api/dashboard/summary", nil)
-	ctx.Input.CruSession = &mockSessionStore{vals: map[interface{}]interface{}{}}
+	ctrl, _, rw, _ := newAPIContext("GET", "/api/dashboard/summary", nil)
 	c := &DashboardAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Summary()
@@ -258,8 +264,8 @@ func TestDashboardAPISummary_UsernameMissing(t *testing.T) {
 
 func TestWishlistAPIGetUsername_Authorized(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("GET", "/api/wishlist", nil)
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("GET", "/api/wishlist", nil)
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	username, ok := c.getUsername()
@@ -274,8 +280,8 @@ func TestWishlistAPIUpdate_StatusRequired(t *testing.T) {
 	item := store.Create("alice", "France", "Old note", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"Updated note","status":""}`))
-	setSession(ctx, "alice")
+	ctrl, ctx, _, req := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"Updated note","status":""}`))
+	setCookie(req, "alice")
 	ctx.Input.SetParam(":id", item.ID)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
@@ -288,7 +294,7 @@ func TestWishlistAPIUpdate_StatusRequired(t *testing.T) {
 
 func TestDashboardAPISummary_Unauthorized(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, rw := newAPIContext("GET", "/api/dashboard/summary", nil)
+	ctrl, _, rw, _ := newAPIContext("GET", "/api/dashboard/summary", nil)
 	c := &DashboardAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Summary()
@@ -300,8 +306,8 @@ func TestDashboardAPISummary_Unauthorized(t *testing.T) {
 
 func TestWishlistAPIUpdate_InvalidBody(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("PUT", "/api/wishlist/id-123", []byte(`{"note":"New note",`))
-	setSession(ctx, "alice")
+	ctrl, ctx, _, req := newAPIContext("PUT", "/api/wishlist/id-123", []byte(`{"note":"New note",`))
+	setCookie(req, "alice")
 	ctx.Input.SetParam(":id", "id-123")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
@@ -314,7 +320,7 @@ func TestWishlistAPIUpdate_InvalidBody(t *testing.T) {
 
 func TestWishlistAPIGetUsername_Unauthorized(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, _, _ := newAPIContext("GET", "/api/wishlist", nil)
+	ctrl, _, _, _ := newAPIContext("GET", "/api/wishlist", nil)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	_, ok := c.getUsername()
@@ -325,8 +331,8 @@ func TestWishlistAPIGetUsername_Unauthorized(t *testing.T) {
 
 func TestWishlistAPICreate_InvalidStatus(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France","status":"Maybe"}`))
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France","status":"planned"}`))
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Create()
@@ -338,9 +344,9 @@ func TestWishlistAPICreate_InvalidStatus(t *testing.T) {
 
 func TestWishlistAPIDelete_NotFound(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("DELETE", "/api/wishlist/missing", nil)
-	setSession(ctx, "alice")
-	ctx.Input.SetParam(":id", "missing")
+	ctrl, _, _, req := newAPIContext("DELETE", "/api/wishlist/missing", nil)
+	setCookie(req, "alice")
+	ctrl.Ctx.Input.SetParam(":id", "missing")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Delete()
@@ -356,8 +362,8 @@ func TestWishlistAPIList_Authorized(t *testing.T) {
 	store.Create("alice", "France", "Visit", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("GET", "/api/wishlist", nil)
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("GET", "/api/wishlist", nil)
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.List()
@@ -369,8 +375,8 @@ func TestWishlistAPIList_Authorized(t *testing.T) {
 
 func TestWishlistAPICreate_Success(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France","note":"Visit Eiffel Tower","status":"Planned"}`))
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France","note":"Visit Eiffel Tower","status":"Planned"}`))
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Create()
@@ -382,8 +388,8 @@ func TestWishlistAPICreate_Success(t *testing.T) {
 
 func TestWishlistAPICreate_InvalidBody(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France",`))
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"France",`))
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Create()
@@ -395,8 +401,8 @@ func TestWishlistAPICreate_InvalidBody(t *testing.T) {
 
 func TestWishlistAPICreate_ValidationError(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"","status":"Planned"}`))
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("POST", "/api/wishlist", []byte(`{"country_name":"","status":"Planned"}`))
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Create()
@@ -408,8 +414,8 @@ func TestWishlistAPICreate_ValidationError(t *testing.T) {
 
 func TestWishlistAPIUpdate_InvalidID(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("PUT", "/api/wishlist/", []byte(`{"note":"New note","status":"Visited"}`))
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("PUT", "/api/wishlist/", []byte(`{"note":"New note","status":"Visited"}`))
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Update()
@@ -425,9 +431,9 @@ func TestWishlistAPIUpdate_Unauthorized(t *testing.T) {
 	item := store.Create("bob", "France", "Old note", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"New note","status":"Visited"}`))
-	setSession(ctx, "alice")
-	ctx.Input.SetParam(":id", item.ID)
+	ctrl, _, _, req := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"New note","status":"Visited"}`))
+	setCookie(req, "alice")
+	ctrl.Ctx.Input.SetParam(":id", item.ID)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Update()
@@ -443,9 +449,9 @@ func TestWishlistAPIUpdate_Success(t *testing.T) {
 	item := store.Create("alice", "France", "Old note", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"New note","status":"Visited"}`))
-	setSession(ctx, "alice")
-	ctx.Input.SetParam(":id", item.ID)
+	ctrl, _, _, req := newAPIContext("PUT", "/api/wishlist/"+item.ID, []byte(`{"note":"Updated note","status":"Visited"}`))
+	setCookie(req, "alice")
+	ctrl.Ctx.Input.SetParam(":id", item.ID)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Update()
@@ -457,8 +463,8 @@ func TestWishlistAPIUpdate_Success(t *testing.T) {
 
 func TestWishlistAPIDelete_InvalidID(t *testing.T) {
 	setupAPIServices([]models.CountryResponse{}, nil, nil)
-	ctrl, ctx, _ := newAPIContext("DELETE", "/api/wishlist/", nil)
-	setSession(ctx, "alice")
+	ctrl, _, _, req := newAPIContext("DELETE", "/api/wishlist/invalid", nil)
+	setCookie(req, "alice")
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Delete()
@@ -474,9 +480,9 @@ func TestWishlistAPIDelete_Unauthorized(t *testing.T) {
 	item := store.Create("bob", "France", "Note", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("DELETE", "/api/wishlist/"+item.ID, nil)
-	setSession(ctx, "alice")
-	ctx.Input.SetParam(":id", item.ID)
+	ctrl, _, _, req := newAPIContext("DELETE", "/api/wishlist/"+item.ID, nil)
+	setCookie(req, "alice")
+	ctrl.Ctx.Input.SetParam(":id", item.ID)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Delete()
@@ -492,9 +498,9 @@ func TestWishlistAPIDelete_Success(t *testing.T) {
 	item := store.Create("alice", "France", "Note", string(models.StatusPlanned))
 	services.Container.WishlistService = services.NewWishlistService(store)
 
-	ctrl, ctx, _ := newAPIContext("DELETE", "/api/wishlist/"+item.ID, nil)
-	setSession(ctx, "alice")
-	ctx.Input.SetParam(":id", item.ID)
+	ctrl, _, _, req := newAPIContext("DELETE", "/api/wishlist/"+item.ID, nil)
+	setCookie(req, "alice")
+	ctrl.Ctx.Input.SetParam(":id", item.ID)
 	c := &WishlistAPIController{CountriesAPIController: CountriesAPIController{Controller: *ctrl}}
 
 	c.Delete()

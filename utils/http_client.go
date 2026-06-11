@@ -11,6 +11,7 @@ import (
 // HTTPClient interface allows separating real and mock HTTP clients.
 type HTTPClient interface {
 	Get(url string) (*http.Response, error)
+	Do(req *http.Request) (*http.Response, error)
 }
 
 // DefaultHTTPClient production
@@ -29,6 +30,10 @@ func NewHTTPClient(timeoutSeconds int) *DefaultHTTPClient {
 
 func (c *DefaultHTTPClient) Get(url string) (*http.Response, error) {
 	return c.client.Get(url)
+}
+
+func (c *DefaultHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	return c.client.Do(req)
 }
 
 // FetchJSON fetches JSON from any URL and decodes it into a struct

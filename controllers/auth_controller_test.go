@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -19,6 +20,15 @@ func ensureGlobalSessions() {
 		web.GlobalSessions = mgr
 		go web.GlobalSessions.GC()
 	}
+}
+
+func extractCookieValue(rw *httptest.ResponseRecorder, cookieName string) string {
+	for _, cookie := range rw.Result().Cookies() {
+		if cookie.Name == cookieName {
+			return cookie.Value
+		}
+	}
+	return ""
 }
 
 func newAuthController(url string, session map[interface{}]interface{}) (*AuthController, *httptest.ResponseRecorder) {
@@ -42,8 +52,9 @@ func TestDoLogin_Success(t *testing.T) {
 	if rw.Header().Get("Location") != "/dashboard" {
 		t.Fatalf("expected redirect to /dashboard, got %q", rw.Header().Get("Location"))
 	}
-	if c.GetSession("username") != "Alice" {
-		t.Fatalf("expected session username Alice, got %#v", c.GetSession("username"))
+	cookieVal := extractCookieValue(rw, "travelsphere_user")
+	if cookieVal != "Alice" {
+		t.Fatalf("expected cookie value Alice, got %q", cookieVal)
 	}
 }
 
@@ -69,8 +80,9 @@ func TestDoLogout_RedirectsToHome(t *testing.T) {
 	if rw.Header().Get("Location") != "/" {
 		t.Fatalf("expected redirect to /, got %q", rw.Header().Get("Location"))
 	}
-	if c.Ctx.Input.CruSession != nil {
-		t.Fatal("expected session to be cleared after logout")
+	cookie := getCookie(rw, "travelsphere_user")
+	if cookie == nil || cookie.MaxAge != -1 {
+		t.Fatal("expected cookie to be cleared after logout")
 	}
 }
 
@@ -112,11 +124,21 @@ func TestDoLogin_InvalidLongUsername(t *testing.T) {
 	}
 }
 
+func getCookie(rw *httptest.ResponseRecorder, name string) *http.Cookie {
+	for _, cookie := range rw.Result().Cookies() {
+		if cookie.Name == name {
+			return cookie
+		}
+	}
+	return nil
+}
+
 func TestDoLogin_SanitizesUsername(t *testing.T) {
-	c, _ := newAuthController("/login?username=Alice!@#&redirect=/", map[interface{}]interface{}{})
+	c, rw := newAuthController("/login?username=Alice!@#&redirect=/", map[interface{}]interface{}{})
 	c.DoLogin()
 
-	if c.GetSession("username") != "Alice" {
-		t.Fatalf("expected sanitized username Alice, got %#v", c.GetSession("username"))
+	cookieVal := extractCookieValue(rw, "travelsphere_user")
+	if cookieVal != "Alice" {
+		t.Fatalf("expected sanitized username Alice, got %q", cookieVal)
 	}
 }

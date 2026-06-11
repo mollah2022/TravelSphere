@@ -31,6 +31,20 @@ func TestGetAttractionsByCountry_ErrorReturnsEmpty(t *testing.T) {
 	}
 }
 
+func TestGetAttractionsByCountry_Success(t *testing.T) {
+	svc := services.NewAttractionService(&workingAttractionClient{})
+	items, err := svc.GetAttractionsByCountry(23.7, 90.4)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatalf("expected attractions, got 0")
+	}
+	if items[0].Name != "Park" {
+		t.Errorf("expected Park, got %q", items[0].Name)
+	}
+}
+
 func TestGetPopularAttractions_ReturnsStaticList(t *testing.T) {
 	svc := services.NewAttractionService(&workingAttractionClient{})
 	items := svc.GetPopularAttractions()

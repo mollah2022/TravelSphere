@@ -158,6 +158,13 @@ func (f *mockHTTPClient) Get(url string) (*http.Response, error) {
 	return f.resp, nil
 }
 
+func (f *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.resp, nil
+}
+
 func (f *failingCountryAPIClient) FetchAll() ([]models.CountryResponse, error) {
 	return nil, errors.New("fail")
 }

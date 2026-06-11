@@ -22,6 +22,13 @@ func (m *mockWeatherHTTPClient) Get(url string) (*http.Response, error) {
 	return m.resp, nil
 }
 
+func (m *mockWeatherHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.resp, nil
+}
+
 func TestWeatherClient_IsAvailable(t *testing.T) {
 	c := &utils.WeatherClient{APIKey: "", HTTPClient: &mockWeatherHTTPClient{}}
 	if c.IsAvailable() {

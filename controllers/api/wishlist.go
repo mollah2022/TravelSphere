@@ -12,20 +12,20 @@ type WishlistAPIController struct {
 	CountriesAPIController // svc() inherit করার জন্য
 }
 
-// getUsername session থেকে username নেয়
+// getUsername cookie থেকে username নেয়
 // না থাকলে 401 response পাঠায় এবং false return করে
 func (c *WishlistAPIController) getUsername() (string, bool) {
-	if c.Ctx == nil || c.Ctx.Input == nil || c.Ctx.Input.CruSession == nil {
+	if c.Ctx == nil || c.Ctx.Request == nil {
 		utils.SendError(&c.Controller, "Unauthorized", 401)
 		return "", false
 	}
 
-	sess := c.GetSession("username")
-	if sess == nil {
+	cookie, err := c.Ctx.Request.Cookie("travelsphere_user")
+	if err != nil || cookie.Value == "" {
 		utils.SendError(&c.Controller, "Unauthorized", 401)
 		return "", false
 	}
-	return sess.(string), true
+	return cookie.Value, true
 }
 
 // List GET /api/wishlist

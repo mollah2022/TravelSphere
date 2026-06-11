@@ -19,11 +19,21 @@ func svc() *services.ServiceContainer {
 }
 
 // List handles GET /api/countries.
-// Supports query parameters: search, region.
+// Supports query parameters: search, region, limit, offset.
+// Defaults: limit=25, offset=0
+// Max limit: 100
 // Used for AJAX-based country search and filtering.
 func (c *CountriesAPIController) List() {
 	search := c.GetString("search")
 	region := c.GetString("region")
+	q := c.GetString("q") // Alternative search parameter
+	limit, _ := c.GetInt("limit")
+	offset, _ := c.GetInt("offset")
+
+	// Use 'q' if 'search' is not provided (REST Countries v5 API uses 'q')
+	if search == "" && q != "" {
+		search = q
+	}
 
 	if !utils.IsValidSearch(search) {
 		utils.SendError(&c.Controller, "Search query too long", 400)
@@ -35,7 +45,15 @@ func (c *CountriesAPIController) List() {
 		return
 	}
 
-	countries, err := svc().CountryService.SearchCountries(search, region)
+	// Validate pagination parameters
+	if limit < 1 || limit > 100 {
+		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	countries, err := svc().CountryService.SearchCountriesWithPagination(search, region, limit, offset)
 	if err != nil {
 		utils.SendError(&c.Controller, "Failed to fetch countries", 500)
 		return

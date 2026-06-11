@@ -25,6 +25,13 @@ func (f *fakeClient) Get(url string) (*http.Response, error) {
 	return f.resp, nil
 }
 
+func (f *fakeClient) Do(req *http.Request) (*http.Response, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.resp, nil
+}
+
 func TestFetchJSON_Success(t *testing.T) {
 	jsonBody := `[{"name": {"common":"X","official":"X"}}]`
 	resp := &http.Response{
@@ -126,7 +133,10 @@ func TestCountriesClient_FetchAll(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(jsonBody)),
 	}
-	client := &utils.CountriesClient{BaseURL: "http://example.test", HTTPClient: &mockHTTPClient{resp: resp}}
+	client := &utils.CountriesClient{
+		BaseURL:    "http://example.test",
+		HTTPClient: &fakeClient{resp: resp},
+	}
 	countries, err := client.FetchAll()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -142,7 +152,10 @@ func TestCountriesClient_FetchByName(t *testing.T) {
 		StatusCode: 200,
 		Body:       io.NopCloser(strings.NewReader(jsonBody)),
 	}
-	client := &utils.CountriesClient{BaseURL: "http://example.test", HTTPClient: &mockHTTPClient{resp: resp}}
+	client := &utils.CountriesClient{
+		BaseURL:    "http://example.test",
+		HTTPClient: &fakeClient{resp: resp},
+	}
 	countries, err := client.FetchByName("India")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -153,10 +166,16 @@ func TestCountriesClient_FetchByName(t *testing.T) {
 }
 
 func TestCountriesClient_FetchAll_HTTPFailure(t *testing.T) {
-	client := &utils.CountriesClient{BaseURL: "http://example.test", HTTPClient: &mockHTTPClient{err: errors.New("boom")}}
-	_, err := client.FetchAll()
-	if err == nil {
-		t.Fatal("expected error when HTTP fails")
+	client := &utils.CountriesClient{
+		BaseURL:    "http://example.test",
+		HTTPClient: &fakeClient{err: errors.New("boom")},
+	}
+	countries, err := client.FetchAll()
+	if err != nil {
+		t.Fatalf("expected no error (fallback to mock), got %v", err)
+	}
+	if len(countries) == 0 {
+		t.Fatal("expected mock data to be returned on HTTP failure")
 	}
 }
 

@@ -17,13 +17,17 @@ type BaseController struct {
 // It sets common data for all pages such as navigation and login state.
 func (c *BaseController) Prepare() {
 
-	var username interface{}
-	if c.Ctx != nil && c.Ctx.Input != nil && c.Ctx.Input.CruSession != nil {
-		username = c.GetSession("username")
-	}
-	if username != nil {
+	// Get username from cookie (more reliable than session)
+	defer func() {
+		if r := recover(); r != nil {
+			// Cookie access failed, continue without user data
+		}
+	}()
+
+	cookie, err := c.Ctx.Request.Cookie("travelsphere_user")
+	if err == nil && cookie.Value != "" {
 		c.IsLoggedIn = true
-		c.Username = username.(string)
+		c.Username = cookie.Value
 	}
 
 	// Ensure template data map is initialized
