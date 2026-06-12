@@ -29,9 +29,9 @@ type CountriesClient struct {
 
 // APIResponse wrapper for new v5 API response format
 type APIResponse struct {
-	Success bool                  `json:"success"`
+	Success bool                     `json:"success"`
 	Data    []models.CountryResponse `json:"data"`
-	Errors  []map[string]string   `json:"errors"`
+	Errors  []map[string]string      `json:"errors"`
 }
 
 // V5APIResponse wrapper for new v5 API format
@@ -58,12 +58,12 @@ type V5CountryData struct {
 			Lng float64 `json:"lng"`
 		} `json:"coordinates"`
 	} `json:"capitals"`
-	Region       string                      `json:"region"`
-	Subregion    string                      `json:"subregion"`
-	Population   int64                       `json:"population"`
-	Flag         V5FlagData                  `json:"flag"`
-	Currencies   []V5CurrencyData            `json:"currencies"`
-	Languages    []V5LanguageData            `json:"languages"`
+	Region     string           `json:"region"`
+	Subregion  string           `json:"subregion"`
+	Population int64            `json:"population"`
+	Flag       V5FlagData       `json:"flag"`
+	Currencies []V5CurrencyData `json:"currencies"`
+	Languages  []V5LanguageData `json:"languages"`
 }
 
 // V5FlagData represents flag data from v5 API
@@ -85,26 +85,26 @@ type V5CurrencyData struct {
 
 // V5LanguageData represents language from v5 API
 type V5LanguageData struct {
-	Bcp47    string `json:"bcp47"`
-	Iso6391  string `json:"iso639_1"`
-	Iso6392b string `json:"iso639_2b"`
-	Iso6392t string `json:"iso639_2t"`
-	Iso6393  string `json:"iso639_3"`
-	Name     string `json:"name"`
+	Bcp47      string `json:"bcp47"`
+	Iso6391    string `json:"iso639_1"`
+	Iso6392b   string `json:"iso639_2b"`
+	Iso6392t   string `json:"iso639_2t"`
+	Iso6393    string `json:"iso639_3"`
+	Name       string `json:"name"`
 	NativeName string `json:"native_name"`
 }
 
 // NewCountriesClient নতুন REST Countries client তৈরি করে
 func NewCountriesClient() *CountriesClient {
 	baseURL := os.Getenv("REST_COUNTRIES_BASE_URL")
-	if baseURL == "" {
-		baseURL = "https://api.restcountries.com/countries/v5"
-	}
+	// if baseURL == "" {
+	// 	baseURL = "https://api.restcountries.com/countries/v5"
+	// }
 	apiKey := os.Getenv("REST_COUNTRIES_API_KEY")
-	if apiKey == "" {
-		// Fallback API key if not provided
-		apiKey = "rc_live_e3842f257f19449086b10cfcfba5e3f2"
-	}
+	// if apiKey == "" {
+	// 	// Fallback API key if not provided
+	// 	apiKey = "rc_live_e3842f257f19449086b10cfcfba5e3f2"
+	// }
 	return &CountriesClient{
 		BaseURL:    baseURL,
 		APIKey:     apiKey,
@@ -493,7 +493,6 @@ func convertV5ToCountryResponse(v5Countries []V5CountryData) []models.CountryRes
 
 	return result
 }
-
 
 // TransformCountryToDTO CountryResponse কে CountryDTO তে convert করে
 func TransformCountryToDTO(c models.CountryResponse) models.CountryDTO {
